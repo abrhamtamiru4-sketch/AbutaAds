@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>abutaAds — Telegram Advertising Platform</title>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --card: #1a2235;
+    --border: #243049;
+    --accent: #2563eb;
+    --accent2: #7c3aed;
+    --gold: #f59e0b;
+    --green: #10b981;
+    --red: #ef4444;
+    --text: #f1f5f9;
+    --muted: #64748b;
+    --sub: #94a3b8;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); min-height:100vh; }
+
+  /* ── LAYOUT ── */
+  #app { display:flex; min-height:100vh; }
+  #sidebar {
+    width:240px; min-height:100vh; background:var(--surface);
+    border-right:1px solid var(--border); display:flex;
+    flex-direction:column; position:fixed; left:0; top:0; bottom:0; z-index:100;
+    transition:transform .3s;
+  }
+  #sidebar.hidden { transform:translateX(-100%); }
+  #main { margin-left:240px; flex:1; min-height:100vh; }
+  @media(max-width:768px){
+    #sidebar { transform:translateX(-100%); }
+    #sidebar.open { transform:none; }
+    #main { margin-left:0; }
+  }
+
+  /* ── SIDEBAR ── */
+  .logo { padding:20px 18px; border-bottom:1px solid var(--border); }
+  .logo h1 { font-size:1.3rem; font-weight:800; }
+  .logo h1 span { color:var(--accent); }
+  .logo p { font-size:.7rem; color:var(--muted); margin-top:2px; }
+  .nav-section { padding:12px 10px 4px; font-size:.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+  .nav-item {
+    display:flex; align-items:center; gap:10px; padding:10px 18px;
+    cursor:pointer; border-radius:8px; margin:2px 8px; transition:background .2s;
+    font-size:.88rem; color:var(--sub);
+  }
+  .nav-item:hover { background:var(--card); color:var(--text); }
+  .nav-item.active { background:linear-gradient(135deg,rgba(37,99,235,.2),rgba(124,58,237,.15)); color:var(--text); }
+  .nav-item .icon { width:18px; text-align:center; font-size:1rem; }
+  .badge { margin-left:auto; background:var(--accent); color:#fff; font-size:.6rem; padding:1px 6px; border-radius:20px; }
+  .user-box { margin-top:auto; padding:14px 18px; border-top:1px solid var(--border); display:flex; gap:10px; align-items:center; }
+  .avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.85rem; }
+  .user-info { flex:1; overflow:hidden; }
+  .user-info .name { font-size:.82rem; font-weight:600; }
+  .user-info .role { font-size:.68rem; color:var(--gold); }
+
+  /* ── TOPBAR ── */
+  #topbar {
+    height:60px; background:var(--surface); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; padding:0 24px; gap:16px; position:sticky; top:0; z-index:50;
+  }
+  #topbar .menu-btn { display:none; cursor:pointer; font-size:1.2rem; }
+  @media(max-width:768px){ #topbar .menu-btn { display:block; } }
+  .topbar-title { font-weight:700; font-size:1rem; flex:1; }
+  .topbar-actions { display:flex; gap:10px; align-items:center; }
+  .btn {
+    padding:8px 16px; border:none; border-radius:8px; cursor:pointer;
+    font-size:.82rem; font-weight:600; transition:all .2s;
+  }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#1d4ed8; }
+  .btn-success { background:var(--green); color:#fff; }
+  .btn-success:hover { background:#059669; }
+  .btn-danger { background:var(--red); color:#fff; }
+  .btn-danger:hover { background:#dc2626; }
+  .btn-ghost { background:transparent; color:var(--sub); border:1px solid var(--border); }
+  .btn-ghost:hover { background:var(--card); color:var(--text); }
+  .btn-gold { background:var(--gold); color:#000; }
+  .btn-gold:hover { background:#d97706; }
+  .btn-sm { padding:5px 12px; font-size:.75rem; }
+
+  /* ── CONTENT ── */
+  .page { display:none; padding:28px 24px; }
+  .page.active { display:block; }
+
+  /* ── STATS GRID ── */
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px; margin-bottom:28px; }
+  .stat-card {
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:20px; position:relative; overflow:hidden;
+  }
+  .stat-card::before { content:''; position:absolute; top:0; right:0; width:60px; height:60px; border-radius:50%; opacity:.15; }
+  .stat-card.blue::before { background:var(--accent); }
+  .stat-card.purple::before { background:var(--accent2); }
+  .stat-card.green::before { background:var(--green); }
+  .stat-card.gold::before { background:var(--gold); }
+  .stat-icon { font-size:1.4rem; margin-bottom:8px; }
+  .stat-value { font-size:1.8rem; font-weight:800; }
+  .stat-label { font-size:.75rem; color:var(--muted); margin-top:2px; }
+  .stat-change { font-size:.7rem; margin-top:4px; }
+  .stat-change.up { color:var(--green); }
+  .stat-change.down { color:var(--red); }
+
+  /* ── CARDS ── */
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:20px; }
+  .card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .card-title { font-size:.95rem; font-weight:700; }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.82rem; }
+  th { text-align:left; padding:10px 12px; color:var(--muted); font-weight:600; border-bottom:1px solid var(--border); font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; }
+  td { padding:12px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(255,255,255,.02); }
+
+  /* ── BADGES ── */
+  .tag { display:inline-block; padding:3px 9px; border-radius:20px; font-size:.7rem; font-weight:600; }
+  .tag-green { background:rgba(16,185,129,.15); color:var(--green); }
+  .tag-blue { background:rgba(37,99,235,.15); color:#60a5fa; }
+  .tag-gold { background:rgba(245,158,11,.15); color:var(--gold); }
+  .tag-red { background:rgba(239,68,68,.15); color:var(--red); }
+  .tag-purple { background:rgba(124,58,237,.15); color:#a78bfa; }
+  .tag-gray { background:rgba(100,116,139,.15); color:var(--muted); }
+
+  /* ── FORM ── */
+  .form-group { margin-bottom:16px; }
+  .form-label { font-size:.78rem; color:var(--sub); margin-bottom:6px; display:block; font-weight:600; }
+  .form-control {
+    width:100%; background:var(--surface); border:1px solid var(--border); color:var(--text);
+    padding:10px 14px; border-radius:8px; font-size:.85rem; outline:none; transition:border .2s;
+  }
+  .form-control:focus { border-color:var(--accent); }
+  .form-control::placeholder { color:var(--muted); }
+  select.form-control option { background:var(--surface); }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:600px){ .form-row { grid-template-columns:1fr; } }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .modal-overlay.open { opacity:1; pointer-events:all; }
+  .modal {
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:28px; width:90%; max-width:520px; max-height:90vh; overflow-y:auto;
+    transform:scale(.95); transition:transform .2s;
+  }
+  .modal-overlay.open .modal { transform:scale(1); }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .modal-title { font-size:1rem; font-weight:700; }
+  .modal-close { cursor:pointer; color:var(--muted); font-size:1.2rem; background:none; border:none; color:var(--sub); }
+
+  /* ── TABS ── */
+  .tabs { display:flex; gap:4px; background:var(--surface); border-radius:10px; padding:4px; margin-bottom:20px; }
+  .tab { flex:1; padding:8px 14px; text-align:center; border-radius:7px; cursor:pointer; font-size:.8rem; font-weight:600; color:var(--muted); transition:all .2s; }
+  .tab.active { background:var(--card); color:var(--text); }
+
+  /* ── PROGRESS ── */
+  .progress-bar { height:6px; background:var(--border); border-radius:99px; overflow:hidden; }
+  .progress-fill { height:100%; border-radius:99px; }
+
+  /* ── CHANNEL CARD ── */
+  .channel-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+  .channel-card {
+    background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px;
+    cursor:pointer; transition:border-color .2s;
+  }
+  .channel-card:hover { border-color:var(--accent); }
+  .channel-card-header { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+  .channel-avatar { width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0; }
+  .channel-name { font-weight:700; font-size:.88rem; }
+  .channel-handle { font-size:.72rem; color:var(--muted); }
+  .channel-stats { display:flex; gap:12px; flex-wrap:wrap; }
+  .ch-stat { text-align:center; }
+  .ch-stat-val { font-size:.88rem; font-weight:700; }
+  .ch-stat-lbl { font-size:.65rem; color:var(--muted); }
+
+  /* ── TOAST ── */
+  #toast {
+    position:fixed; bottom:24px; right:24px; background:var(--card); border:1px solid var(--border);
+    border-radius:10px; padding:12px 18px; font-size:.82rem; z-index:999; max-width:300px;
+    opacity:0; transform:translateY(20px); transition:all .3s; pointer-events:none;
+  }
+  #toast.show { opacity:1; transform:none; }
+  #toast.success { border-left:3px solid var(--green); }
+  #toast.error { border-left:3px solid var(--red); }
+
+  /* ── CHART PLACEHOLDER ── */
+  .mini-chart { height:60px; display:flex; align-items:flex-end; gap:3px; }
+  .bar-col { flex:1; background:var(--accent); border-radius:3px 3px 0 0; opacity:.7; transition:opacity .2s; }
+  .bar-col:hover { opacity:1; }
+
+  /* ── TOGGLE ── */
+  .toggle { position:relative; display:inline-block; width:38px; height:20px; }
+  .toggle input { opacity:0; width:0; height:0; }
+  .slider { position:absolute; cursor:pointer; inset:0; background:var(--border); border-radius:20px; transition:.2s; }
+  .slider::before { content:''; position:absolute; width:14px; height:14px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.2s; }
+  input:checked + .slider { background:var(--accent); }
+  input:checked + .slider::before { transform:translateX(18px); }
+
+  /* ── NOTIFICATION DOT ── */
+  .notif-dot { width:8px; height:8px; background:var(--red); border-radius:50%; display:inline-block; }
+
+  /* ── GRADIENT TEXT ── */
+  .grad { background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+
+  .flex { display:flex; }
+  .gap-2 { gap:8px; }
+  .gap-3 { gap:12px; }
+  .items-center { align-items:center; }
+  .justify-between { justify-content:space-between; }
+  .mt-2 { margin-top:8px; }
+  .mt-3 { margin-top:12px; }
+  .text-muted { color:var(--muted); font-size:.78rem; }
+  .w-full { width:100%; }
+
+  .section-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media(max-width:900px){ .section-grid { grid-template-columns:1fr; } }
+
+  .empty-state { text-align:center; padding:40px 20px; color:var(--muted); }
+  .empty-icon { font-size:2.5rem; margin-bottom:12px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<div id="sidebar">
+  <div class="logo">
+    <h1>abuta<span>Ads</span></h1>
+    <p>Telegram Ad Platform</p>
+  </div>
+
+  <div id="nav-user-section">
+    <div class="nav-section">Dashboard</div>
+    <div class="nav-item active" onclick="navigate('dashboard',this)"><span class="icon">📊</span> Overview</div>
+    <div class="nav-item" onclick="navigate('analytics',this)"><span class="icon">📈</span> Analytics</div>
+
+    <div class="nav-section">Advertiser</div>
+    <div class="nav-item" onclick="navigate('campaigns',this)"><span class="icon">📣</span> Campaigns <span class="badge" id="camp-badge">3</span></div>
+    <div class="nav-item" onclick="navigate('create-ad',this)"><span class="icon">✏️</span> Create Ad</div>
+    <div class="nav-item" onclick="navigate('targeting',this)"><span class="icon">🎯</span> Targeting</div>
+
+    <div class="nav-section">Publisher</div>
+    <div class="nav-item" onclick="navigate('channels',this)"><span class="icon">📡</span> My Channels</div>
+    <div class="nav-item" onclick="navigate('earn',this)"><span class="icon">💰</span> Earn</div>
+    <div class="nav-item" onclick="navigate('exchange',this)"><span class="icon">🔄</span> Exchange</div>
+
+    <div class="nav-section">Account</div>
+    <div class="nav-item" onclick="navigate('wallet',this)"><span class="icon">👛</span> Wallet</div>
+    <div class="nav-item" onclick="navigate('referral',this)"><span class="icon">🔗</span> Referral</div>
+    <div class="nav-item" onclick="navigate('settings',this)"><span class="icon">⚙️</span> Settings</div>
+  </div>
+
+  <div id="nav-admin-section" style="display:none;">
+    <div class="nav-section" style="color:var(--gold);">⭐ Admin Panel</div>
+    <div class="nav-item" onclick="navigate('admin-overview',this)"><span class="icon">🛡️</span> Admin Overview</div>
+    <div class="nav-item" onclick="navigate('admin-users',this)"><span class="icon">👥</span> Users</div>
+    <div class="nav-item" onclick="navigate('admin-campaigns',this)"><span class="icon">📋</span> All Campaigns</div>
+    <div class="nav-item" onclick="navigate('admin-channels',this)"><span class="icon">📡</span> All Channels</div>
+    <div class="nav-item" onclick="navigate('admin-moderation',this)"><span class="icon">🔍</span> Moderation <span class="badge">5</span></div>
+    <div class="nav-item" onclick="navigate('admin-payouts',this)"><span class="icon">💸</span> Payouts</div>
+    <div class="nav-item" onclick="navigate('admin-settings',this)"><span class="icon">🔧</span> Platform Settings</div>
+  </div>
+
+  <div class="user-box">
+    <div class="avatar" id="avatar-initials">U</div>
+    <div class="user-info">
+      <div class="name" id="sidebar-username">Guest</div>
+      <div class="role" id="sidebar-role">User</div>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="logout()" title="Logout">↩</button>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<div id="main">
+
+  <!-- LOGIN GATE -->
+  <div id="login-gate" style="display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px;">
+    <div style="width:100%;max-width:400px;">
+      <div style="text-align:center;margin-bottom:32px;">
+        <h1 style="font-size:2rem;font-weight:900;">abuta<span style="color:var(--accent)">Ads</span></h1>
+        <p style="color:var(--muted);margin-top:6px;">Telegram Growth & Monetization Platform</p>
+      </div>
+      <div class="card">
+        <div class="tabs" id="auth-tabs">
+          <div class="tab active" onclick="switchAuth('login',this)">Login</div>
+          <div class="tab" onclick="switchAuth('register',this)">Register</div>
+        </div>
+
+        <!-- LOGIN -->
+        <div id="auth-login">
+          <div class="form-group">
+            <label class="form-label">Telegram Username</label>
+            <input class="form-control" id="login-user" placeholder="@username" value="@abutA_art"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-control" type="password" id="login-pass" placeholder="••••••••" value="admin123"/>
+          </div>
+          <button class="btn btn-primary w-full" onclick="doLogin()" style="width:100%;margin-top:4px;">Login →</button>
+          <p class="text-muted mt-3" style="text-align:center;">Demo: @abutA_art / admin123 (Admin)<br>Or any other / any pass (User)</p>
+        </div>
+
+        <!-- REGISTER -->
+        <div id="auth-register" style="display:none;">
+          <div class="form-group">
+            <label class="form-label">Telegram Username</label>
+            <input class="form-control" id="reg-user" placeholder="@yourusername"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-control" id="reg-email" placeholder="you@email.com"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-control" type="password" id="reg-pass" placeholder="Create password"/>
+          </div>
+          <button class="btn btn-primary w-full" onclick="doRegister()" style="width:100%;margin-top:4px;">Create Account →</button>
+        </div>
+      </div>
+      <p style="text-align:center;color:var(--muted);font-size:.72rem;margin-top:16px;">Prepared by Abuta · @abutA_art</p>
+    </div>
+  </div>
+
+  <!-- APP CONTENT -->
+  <div id="app-content" style="display:none;">
+    <div id="topbar">
+      <span class="menu-btn" onclick="toggleSidebar()">☰</span>
+      <div class="topbar-title" id="topbar-title">Overview</div>
+      <div class="topbar-actions">
+        <span style="font-size:.75rem;color:var(--muted);">Balance:</span>
+        <span style="font-size:.85rem;font-weight:700;color:var(--gold);" id="topbar-balance">0 TON</span>
+        <button class="btn btn-primary btn-sm" onclick="openModal('deposit-modal')">+ Deposit</button>
+        <span id="admin-badge" style="display:none;" class="tag tag-gold">⭐ ADMIN</span>
+      </div>
+    </div>
+
+    <!-- ── PAGES ── -->
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card blue">
+          <div class="stat-icon">📣</div>
+          <div class="stat-value" id="st-campaigns">3</div>
+          <div class="stat-label">Active Campaigns</div>
+          <div class="stat-change up">↑ 12% this week</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon">👤</div>
+          <div class="stat-value" id="st-subs">1,247</div>
+          <div class="stat-label">New Subscribers</div>
+          <div class="stat-change up">↑ 8.3% today</div>
+        </div>
+        <div class="stat-card gold">
+          <div class="stat-icon">💰</div>
+          <div class="stat-value" id="st-earned">12.4 TON</div>
+          <div class="stat-label">Total Earned</div>
+          <div class="stat-change up">↑ 5.1% this month</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon">👁️</div>
+          <div class="stat-value">86.2K</div>
+          <div class="stat-label">Total Impressions</div>
+          <div class="stat-change up">↑ 22% this week</div>
+        </div>
+      </div>
+
+      <div class="section-grid">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📊 Performance (7 days)</div>
+            <span class="tag tag-green">Live</span>
+          </div>
+          <div class="mini-chart" id="dash-chart"></div>
+          <div class="flex gap-3 mt-3" style="font-size:.72rem;color:var(--muted);">
+            <span>Mon</span><span style="flex:1;text-align:center;">Wed</span><span>Sun</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">⚡ Active Campaigns</div><button class="btn btn-primary btn-sm" onclick="navigate('create-ad',null)">+ New</button></div>
+          <div id="active-campaigns-list"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">🔔 Recent Activity</div></div>
+        <div id="activity-feed"></div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="page" id="page-analytics">
+      <div class="stats-grid">
+        <div class="stat-card blue"><div class="stat-icon">👁️</div><div class="stat-value">86,243</div><div class="stat-label">Total Impressions</div></div>
+        <div class="stat-card green"><div class="stat-icon">🖱️</div><div class="stat-value">3,847</div><div class="stat-label">Total Clicks</div><div class="stat-change up">CTR: 4.46%</div></div>
+        <div class="stat-card gold"><div class="stat-icon">👤</div><div class="stat-value">1,247</div><div class="stat-label">Subscribers Gained</div></div>
+        <div class="stat-card purple"><div class="stat-icon">💸</div><div class="stat-value">$0.34</div><div class="stat-label">Avg Cost per Sub</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">📈 Performance Over Time</div>
+          <select class="form-control" style="width:auto;padding:5px 10px;font-size:.75rem;">
+            <option>Last 7 days</option><option>Last 30 days</option><option>Last 90 days</option>
+          </select>
+        </div>
+        <div class="mini-chart" style="height:120px;" id="analytics-chart"></div>
+      </div>
+      <div class="section-grid">
+        <div class="card">
+          <div class="card-header"><div class="card-title">🏆 Top Channels</div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Channel</th><th>Subs</th><th>CPSub</th></tr></thead>
+              <tbody>
+                <tr><td>@cryptonews</td><td>342</td><td>$0.28</td></tr>
+                <tr><td>@techtalks</td><td>218</td><td>$0.31</td></tr>
+                <tr><td>@digitalart</td><td>187</td><td>$0.41</td></tr>
+                <tr><td>@gameworld</td><td>156</td><td>$0.22</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">🌍 Audience GEO</div></div>
+          <div id="geo-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAMPAIGNS -->
+    <div class="page" id="page-campaigns">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📣 My Campaigns</div>
+          <div class="flex gap-2">
+            <select class="form-control btn-sm" style="width:auto;"><option>All</option><option>Active</option><option>Paused</option><option>Draft</option></select>
+            <button class="btn btn-primary btn-sm" onclick="navigate('create-ad',null)">+ Create</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Campaign</th><th>Status</th><th>Budget</th><th>Spent</th><th>Subs</th><th>CPSub</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="campaigns-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CREATE AD -->
+    <div class="page" id="page-create-ad">
+      <div style="max-width:620px;">
+        <div class="card">
+          <div class="card-header"><div class="card-title">✏️ Create New Campaign</div></div>
+          <div class="form-group">
+            <label class="form-label">Campaign Name</label>
+            <input class="form-control" id="ad-name" placeholder="e.g. Crypto Channel Growth"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telegram Channel / Bot Link</label>
+            <input class="form-control" id="ad-link" placeholder="@yourchannel or t.me/yourchannel"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ad Text (max 160 chars)</label>
+            <textarea class="form-control" id="ad-text" rows="3" placeholder="Write your ad caption..." maxlength="160" oninput="updateCharCount()"></textarea>
+            <div style="text-align:right;font-size:.7rem;color:var(--muted);margin-top:4px;"><span id="char-count">0</span>/160</div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Budget (TON)</label>
+              <input class="form-control" type="number" id="ad-budget" placeholder="10" min="1"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Bidding Model</label>
+              <select class="form-control" id="ad-model">
+                <option value="cps">Pay per Subscriber (CPS)</option>
+                <option value="cpm">Pay per 1K Views (CPM)</option>
+                <option value="exchange">Subscriber Exchange (Free)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Max CPS (TON)</label>
+              <input class="form-control" type="number" id="ad-cps" placeholder="0.05" step="0.01"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">AI Auto-Generate Ad Text</label>
+              <button class="btn btn-ghost w-full" onclick="aiGenerateAd()" style="margin-top:0;padding:10px;">🤖 Generate with AI</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Schedule</label>
+            <select class="form-control">
+              <option>Run continuously</option>
+              <option>Set date range</option>
+              <option>Specific hours only</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="submitCampaign()" style="width:100%;margin-top:4px;">🚀 Launch Campaign</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TARGETING -->
+    <div class="page" id="page-targeting">
+      <div style="max-width:620px;">
+        <div class="card">
+          <div class="card-header"><div class="card-title">🎯 Audience Targeting</div></div>
+          <div class="form-group">
+            <label class="form-label">Channel Categories</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;" id="category-tags"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Min Channel Subscribers</label>
+              <input class="form-control" type="number" placeholder="200" value="200"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Max Channel Subscribers</label>
+              <input class="form-control" type="number" placeholder="100000"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Language</label>
+            <select class="form-control">
+              <option>Any</option><option>English</option><option>Arabic</option><option>Russian</option><option>Spanish</option><option>French</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Channel Type</label>
+            <select class="form-control">
+              <option>All (Public + Private)</option><option>Public only</option><option>Private only</option><option>Groups only</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Exclude Channels</label>
+            <input class="form-control" placeholder="@channel1, @channel2"/>
+          </div>
+          <button class="btn btn-primary" onclick="saveTargeting()" style="width:100%;margin-top:4px;">Save Targeting</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY CHANNELS -->
+    <div class="page" id="page-channels">
+      <div class="card-header" style="margin-bottom:16px;">
+        <button class="btn btn-primary" onclick="openModal('add-channel-modal')">+ Add Channel</button>
+      </div>
+      <div class="channel-grid" id="channels-grid"></div>
+    </div>
+
+    <!-- EARN -->
+    <div class="page" id="page-earn">
+      <div class="stats-grid">
+        <div class="stat-card green"><div class="stat-icon">💰</div><div class="stat-value" id="earn-total">12.4 TON</div><div class="stat-label">Total Earned</div></div>
+        <div class="stat-card blue"><div class="stat-icon">📅</div><div class="stat-value">1.8 TON</div><div class="stat-label">This Month</div></div>
+        <div class="stat-card gold"><div class="stat-icon">🕐</div><div class="stat-value">0.42 TON</div><div class="stat-label">Pending Payout</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">💸 Earnings History</div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Channel</th><th>Views</th><th>Earned</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Jul 16</td><td>@mychannel</td><td>4,200</td><td>0.84 TON</td><td><span class="tag tag-green">Paid</span></td></tr>
+              <tr><td>Jul 15</td><td>@mychannel</td><td>3,800</td><td>0.76 TON</td><td><span class="tag tag-green">Paid</span></td></tr>
+              <tr><td>Jul 14</td><td>@mychannel</td><td>2,100</td><td>0.42 TON</td><td><span class="tag tag-gold">Pending</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">⚙️ Auto-Posting Settings</div></div>
+        <p class="text-muted" style="margin-bottom:16px;">Enable automatic ad posts in your channel and earn from views.</p>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <label class="toggle"><input type="checkbox" checked/><span class="slider"></span></label>
+          <span style="font-size:.85rem;">Auto-post ads in my channel</span>
+        </div>
+        <div class="form-row mt-3">
+          <div class="form-group">
+            <label class="form-label">Posts per day</label>
+            <select class="form-control"><option>3</option><option>5</option><option>8</option><option>Unlimited</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category filter</label>
+            <select class="form-control"><option>All categories</option><option>Crypto only</option><option>Tech only</option></select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXCHANGE -->
+    <div class="page" id="page-exchange">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🔄 Subscriber Exchange</div>
+          <span class="tag tag-green">Free Plan</span>
+        </div>
+        <p class="text-muted" style="margin-bottom:16px;">Exchange subscribers with other channels for free. You post their ad, they post yours.</p>
+        <div class="channel-grid" id="exchange-grid"></div>
+      </div>
+    </div>
+
+    <!-- WALLET -->
+    <div class="page" id="page-wallet">
+      <div class="section-grid">
+        <div class="card">
+          <div class="card-header"><div class="card-title">👛 My Wallet</div></div>
+          <div style="text-align:center;padding:20px 0;">
+            <div style="font-size:2.2rem;font-weight:800;" id="wallet-balance">0 TON</div>
+            <div class="text-muted mt-2">Available Balance</div>
+            <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;">
+              <button class="btn btn-primary" onclick="openModal('deposit-modal')">+ Deposit</button>
+              <button class="btn btn-ghost" onclick="openModal('withdraw-modal')">Withdraw</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📊 Transaction History</div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Type</th><th>Amount</th></tr></thead>
+              <tbody id="tx-history"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REFERRAL -->
+    <div class="page" id="page-referral">
+      <div class="card">
+        <div class="card-header"><div class="card-title">🔗 Referral Program</div></div>
+        <div style="text-align:center;padding:20px;">
+          <div style="font-size:2rem;margin-bottom:10px;">🎁</div>
+          <h3 style="margin-bottom:8px;">Earn 10% of every referral's spending</h3>
+          <p class="text-muted" style="margin-bottom:20px;">Share your referral link and earn passive income</p>
+          <div style="display:flex;gap:8px;margin-bottom:20px;">
+            <input class="form-control" id="ref-link" readonly value="https://abutaads.net/ref/abutA_art"/>
+            <button class="btn btn-primary" onclick="copyRef()">Copy</button>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card green"><div class="stat-icon">👥</div><div class="stat-value">0</div><div class="stat-label">Referrals</div></div>
+          <div class="stat-card gold"><div class="stat-icon">💰</div><div class="stat-value">0 TON</div><div class="stat-label">Earned from Refs</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div style="max-width:560px;">
+        <div class="card">
+          <div class="card-header"><div class="card-title">⚙️ Account Settings</div></div>
+          <div class="form-group">
+            <label class="form-label">Telegram Username</label>
+            <input class="form-control" id="set-username" placeholder="@username"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email (for payouts)</label>
+            <input class="form-control" placeholder="your@email.com"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">TON Wallet Address</label>
+            <input class="form-control" placeholder="EQC..."/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notification Language</label>
+            <select class="form-control"><option>English</option><option>Arabic</option><option>Russian</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="saveSettings()" style="width:100%;">Save Settings</button>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">🔔 Notifications</div></div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:.85rem;">Campaign approved</span><label class="toggle"><input type="checkbox" checked/><span class="slider"></span></label></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:.85rem;">New subscriber milestone</span><label class="toggle"><input type="checkbox" checked/><span class="slider"></span></label></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:.85rem;">Payout received</span><label class="toggle"><input type="checkbox" checked/><span class="slider"></span></label></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:.85rem;">Weekly report</span><label class="toggle"><input type="checkbox"/><span class="slider"></span></label></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ADMIN PAGES ══ -->
+
+    <!-- ADMIN OVERVIEW -->
+    <div class="page" id="page-admin-overview">
+      <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.4rem;">⭐</span>
+        <div>
+          <div style="font-weight:700;font-size:1rem;">Admin Control Center</div>
+          <div class="text-muted">Welcome, @abutA_art — Full Platform Access</div>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-value" id="adm-users">1,284</div><div class="stat-label">Total Users</div><div class="stat-change up">↑ 43 today</div></div>
+        <div class="stat-card green"><div class="stat-icon">📣</div><div class="stat-value" id="adm-campaigns">287</div><div class="stat-label">Total Campaigns</div></div>
+        <div class="stat-card gold"><div class="stat-icon">💰</div><div class="stat-value">4,821 TON</div><div class="stat-label">Platform Revenue</div></div>
+        <div class="stat-card purple"><div class="stat-icon">📡</div><div class="stat-value">932</div><div class="stat-label">Channels Connected</div></div>
+      </div>
+      <div class="section-grid">
+        <div class="card">
+          <div class="card-header"><div class="card-title">⏳ Pending Reviews</div><span class="tag tag-red">5 urgent</span></div>
+          <div id="pending-reviews-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📊 Platform Health</div></div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px;"><span>Campaign Approval Rate</span><span class="grad">94%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:94%;background:linear-gradient(90deg,var(--accent),var(--accent2));"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px;"><span>Platform Uptime</span><span style="color:var(--green);">99.8%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:99.8%;background:var(--green);"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px;"><span>Ad Quality Score</span><span style="color:var(--gold);">87%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:87%;background:var(--gold);"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px;"><span>Publisher Satisfaction</span><span style="color:var(--green);">91%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:91%;background:var(--green);"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN USERS -->
+    <div class="page" id="page-admin-users">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">👥 User Management</div>
+          <div class="flex gap-2">
+            <input class="form-control btn-sm" placeholder="Search @username..." style="width:180px;" oninput="filterUsers(this.value)"/>
+            <select class="form-control btn-sm" style="width:auto;" onchange="filterUserRole(this.value)">
+              <option value="">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="advertiser">Advertiser</option>
+              <option value="publisher">Publisher</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>User</th><th>Role</th><th>Balance</th><th>Campaigns</th><th>Channels</th><th>Joined</th><th>Actions</th></tr></thead>
+            <tbody id="users-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN ALL CAMPAIGNS -->
+    <div class="page" id="page-admin-campaigns">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📋 All Campaigns</div>
+          <select class="form-control btn-sm" style="width:auto;" onchange="filterAdminCampaigns(this.value)">
+            <option value="">All Status</option><option value="active">Active</option><option value="review">In Review</option><option value="paused">Paused</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Campaign</th><th>Owner</th><th>Status</th><th>Budget</th><th>Spent</th><th>Actions</th></tr></thead>
+            <tbody id="admin-campaigns-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN CHANNELS -->
+    <div class="page" id="page-admin-channels">
+      <div class="card">
+        <div class="card-header"><div class="card-title">📡 All Connected Channels</div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Channel</th><th>Owner</th><th>Subscribers</th><th>Category</th><th>Revenue</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="admin-channels-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN MODERATION -->
+    <div class="page" id="page-admin-moderation">
+      <div class="card">
+        <div class="card-header"><div class="card-title">🔍 Moderation Queue</div><span class="badge">5</span></div>
+        <div id="moderation-queue"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN PAYOUTS -->
+    <div class="page" id="page-admin-payouts">
+      <div class="stats-grid">
+        <div class="stat-card gold"><div class="stat-icon">⏳</div><div class="stat-value">12.4 TON</div><div class="stat-label">Pending Payouts</div></div>
+        <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-value">4,808 TON</div><div class="stat-label">Total Paid Out</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">💸 Payout Requests</div>
+          <button class="btn btn-success btn-sm" onclick="processAllPayouts()">Process All Pending</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>User</th><th>Amount</th><th>Wallet</th><th>Requested</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="payouts-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN SETTINGS -->
+    <div class="page" id="page-admin-settings">
+      <div style="max-width:560px;">
+        <div class="card">
+          <div class="card-header"><div class="card-title">🔧 Platform Settings</div></div>
+          <div class="form-group">
+            <label class="form-label">Platform Commission (%)</label>
+            <input class="form-control" type="number" value="15" min="0" max="50"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Min Payout Threshold (TON)</label>
+            <input class="form-control" type="number" value="1" step="0.1"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Min Channel Subscribers for Monetization</label>
+            <input class="form-control" type="number" value="100"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Payout Frequency</label>
+            <select class="form-control"><option>Daily</option><option>Weekly</option><option>Monthly</option></select>
+          </div>
+          <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;">
+            <label class="form-label" style="margin:0;">AI Ad Generation</label>
+            <label class="toggle"><input type="checkbox" checked/><span class="slider"></span></label>
+          </div>
+          <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+            <label class="form-label" style="margin:0;">Auto-Approve Trusted Advertisers</label>
+            <label class="toggle"><input type="checkbox"/><span class="slider"></span></label>
+          </div>
+          <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+            <label class="form-label" style="margin:0;">Maintenance Mode</label>
+            <label class="toggle"><input type="checkbox"/><span class="slider"></span></label>
+          </div>
+          <button class="btn btn-primary" onclick="savePlatformSettings()" style="width:100%;margin-top:8px;">Save Platform Settings</button>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">👑 Admin Accounts</div></div>
+          <div id="admin-list"></div>
+          <button class="btn btn-ghost btn-sm mt-3" onclick="openModal('add-admin-modal')">+ Add Admin</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end app-content -->
+</div><!-- end main -->
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- DEPOSIT -->
+<div class="modal-overlay" id="deposit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">💰 Deposit TON</div>
+      <button class="modal-close" onclick="closeModal('deposit-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Amount (TON)</label>
+      <input class="form-control" type="number" id="dep-amount" placeholder="10" min="1"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Payment Method</label>
+      <select class="form-control">
+        <option>TON Wallet</option>
+        <option>Card (via TON)</option>
+        <option>Exchange</option>
+      </select>
+    </div>
+    <div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:16px;">
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:4px;">Send TON to:</div>
+      <div style="font-family:monospace;font-size:.75rem;word-break:break-all;">EQCabutaAds_Wallet_7xK9mPnQr3sWvBzDfGhJkLmNpRtUwYa</div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;" onclick="doDeposit()">Confirm Deposit</button>
+  </div>
+</div>
+
+<!-- WITHDRAW -->
+<div class="modal-overlay" id="withdraw-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">💸 Withdraw</div>
+      <button class="modal-close" onclick="closeModal('withdraw-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Amount (TON)</label>
+      <input class="form-control" type="number" placeholder="5" min="1"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Your TON Wallet Address</label>
+      <input class="form-control" placeholder="EQC..."/>
+    </div>
+    <button class="btn btn-primary" style="width:100%;" onclick="doWithdraw()">Request Withdrawal</button>
+  </div>
+</div>
+
+<!-- ADD CHANNEL -->
+<div class="modal-overlay" id="add-channel-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📡 Add Channel</div>
+      <button class="modal-close" onclick="closeModal('add-channel-modal')">✕</button>
+    </div>
+    <p class="text-muted" style="margin-bottom:16px;">Connect your Telegram channel to start earning from ads.</p>
+    <div class="form-group">
+      <label class="form-label">Channel Username or Link</label>
+      <input class="form-control" id="new-channel-input" placeholder="@yourchannel"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select class="form-control" id="new-channel-cat">
+        <option>Crypto & Finance</option><option>Tech & Science</option><option>News & Media</option>
+        <option>Entertainment</option><option>Sports</option><option>Art & Design</option><option>Other</option>
+      </select>
+    </div>
+    <ol style="font-size:.78rem;color:var(--muted);margin:12px 0;padding-left:18px;line-height:1.8;">
+      <li>Add <b>@abutaAds_bot</b> as admin to your channel</li>
+      <li>Give it permission to post messages</li>
+      <li>Click verify below</li>
+    </ol>
+    <button class="btn btn-primary" style="width:100%;" onclick="addChannel()">Verify & Connect</button>
+  </div>
+</div>
+
+<!-- ADD ADMIN -->
+<div class="modal-overlay" id="add-admin-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">👑 Add Admin</div>
+      <button class="modal-close" onclick="closeModal('add-admin-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Telegram Username</label>
+      <input class="form-control" id="new-admin-input" placeholder="@username"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Role</label>
+      <select class="form-control">
+        <option>Super Admin</option>
+        <option>Moderator</option>
+        <option>Finance Admin</option>
+      </select>
+    </div>
+    <button class="btn btn-gold" style="width:100%;" onclick="addAdmin()">Grant Admin Access</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ══════════════ SCRIPT ══════════════ -->
+<script>
+// ── STATE ──
+const state = {
+  user: null,
+  balance: 0,
+  campaigns: [
+    { id:1, name:'Crypto Grow', link:'@cryptonews', status:'active', budget:50, spent:18.4, subs:342, model:'cps' },
+    { id:2, name:'Tech Boost', link:'@techtalks', status:'active', budget:30, spent:7.2, subs:143, model:'cps' },
+    { id:3, name:'Art Promo', link:'@digitalart', status:'paused', budget:20, spent:2.1, subs:41, model:'cpm' },
+  ],
+  channels: [
+    { name:'My Main Channel', handle:'@mychannel', subs:4200, category:'Tech', earned:'12.4 TON', status:'active' },
+  ],
+  users: [
+    { username:'@abutA_art', role:'admin', balance:'∞', campaigns:7, channels:3, joined:'Jun 2025' },
+    { username:'@cryptoKing', role:'advertiser', balance:'42 TON', campaigns:5, channels:0, joined:'May 2025' },
+    { username:'@publisher99', role:'publisher', balance:'8.2 TON', campaigns:0, channels:4, joined:'Apr 2025' },
+    { username:'@techBro', role:'advertiser', balance:'18 TON', campaigns:2, channels:1, joined:'Jul 2025' },
+    { username:'@earnBot', role:'publisher', balance:'3.1 TON', campaigns:0, channels:2, joined:'Jun 2025' },
+  ],
+  allCampaigns: [
+    { name:'Crypto Grow', owner:'@cryptoKing', status:'active', budget:'50 TON', spent:'18.4 TON' },
+    { name:'Tech Boost', owner:'@abutA_art', status:'active', budget:'30 TON', spent:'7.2 TON' },
+    { name:'Art Promo', owner:'@abutA_art', status:'paused', budget:'20 TON', spent:'2.1 TON' },
+    { name:'Finance Daily', owner:'@cryptoKing', status:'review', budget:'80 TON', spent:'0 TON' },
+    { name:'Game Invite', owner:'@techBro', status:'active', budget:'15 TON', spent:'4.8 TON' },
+  ],
+  allChannels: [
+    { channel:'@cryptonews', owner:'@cryptoKing', subs:'12,400', category:'Crypto', revenue:'84 TON', status:'active' },
+    { channel:'@techtalks', owner:'@publisher99', subs:'8,200', category:'Tech', revenue:'62 TON', status:'active' },
+    { channel:'@digitalart', owner:'@earnBot', subs:'5,100', category:'Art', revenue:'31 TON', status:'active' },
+    { channel:'@mychannel', owner:'@abutA_art', subs:'4,200', category:'Tech', revenue:'12.4 TON', status:'active' },
+    { channel:'@gameworld', owner:'@techBro', subs:'3,800', category:'Gaming', revenue:'22 TON', status:'suspended' },
+  ],
+  modQueue: [
+    { id:'AD-001', type:'Campaign', title:'Crypto Signal Bot', owner:'@cryptoKing', reason:'New advertiser' },
+    { id:'AD-002', type:'Campaign', title:'Adult Dating App', owner:'@unknown99', reason:'Policy check' },
+    { id:'CH-003', type:'Channel', title:'@newschannel', owner:'@newsUser', reason:'New channel' },
+    { id:'AD-004', type:'Campaign', title:'NFT Marketplace', owner:'@techBro', reason:'High budget' },
+    { id:'AD-005', type:'Campaign', title:'Forex Signals', owner:'@tradePro', reason:'Finance content' },
+  ],
+  payouts: [
+    { user:'@publisher99', amount:'3.2 TON', wallet:'EQC...abc', requested:'Jul 14', status:'pending' },
+    { user:'@earnBot', amount:'1.8 TON', wallet:'EQC...def', requested:'Jul 15', status:'pending' },
+    { user:'@cryptoKing', amount:'7.4 TON', wallet:'EQC...ghi', requested:'Jul 10', status:'paid' },
+  ],
+  admins: ['@abutA_art'],
+  transactions: [
+    { date:'Jul 15', type:'Deposit', amount:'+20 TON' },
+    { date:'Jul 12', type:'Campaign Spend', amount:'-7.2 TON' },
+    { date:'Jul 10', type:'Payout', amount:'+12.4 TON' },
+  ],
+};
+
+const categories = ['Crypto','Tech','News','Entertainment','Sports','Art','Gaming','Finance','Education','Other'];
+
+// ── AUTH ──
+function switchAuth(tab, el){
+  document.querySelectorAll('#auth-tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('auth-login').style.display = tab==='login'?'block':'none';
+  document.getElementById('auth-register').style.display = tab==='register'?'block':'none';
+}
+
+function doLogin(){
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value.trim();
+  if(!u){ showToast('Enter your username','error'); return; }
+  const isAdmin = (u==='@abutA_art' && p==='admin123');
+  state.user = { username: u, isAdmin };
+  state.balance = isAdmin ? 999 : 20;
+  launchApp();
+}
+
+function doRegister(){
+  const u = document.getElementById('reg-user').value.trim();
+  if(!u){ showToast('Enter a username','error'); return; }
+  state.user = { username: u, isAdmin: false };
+  state.balance = 0;
+  launchApp();
+}
+
+function launchApp(){
+  document.getElementById('login-gate').style.display = 'none';
+  document.getElementById('app-content').style.display = 'block';
+  const u = state.user;
+  document.getElementById('avatar-initials').textContent = u.username.replace('@','').charAt(0).toUpperCase();
+  document.getElementById('sidebar-username').textContent = u.username;
+  document.getElementById('sidebar-role').textContent = u.isAdmin ? '⭐ Super Admin' : 'User';
+  document.getElementById('topbar-balance').textContent = state.balance + ' TON';
+  document.getElementById('wallet-balance').textContent = state.balance + ' TON';
+  document.getElementById('set-username').value = u.username;
+  document.getElementById('ref-link').value = `https://abutaads.net/ref/${u.username.replace('@','')}`;
+  if(u.isAdmin){
+    document.getElementById('nav-admin-section').style.display = 'block';
+    document.getElementById('admin-badge').style.display = 'inline-block';
+  }
+  initAll();
+  navigate('dashboard', document.querySelector('.nav-item'));
+}
+
+function logout(){
+  state.user = null;
+  document.getElementById('login-gate').style.display = 'flex';
+  document.getElementById('app-content').style.display = 'none';
+  document.getElementById('nav-admin-section').style.display = 'none';
+  document.getElementById('admin-badge').style.display = 'none';
+}
+
+// ── NAVIGATION ──
+function navigate(page, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const target = document.getElementById('page-'+page);
+  if(target) target.classList.add('active');
+  if(el) el.classList.add('active');
+  const titles = {
+    'dashboard':'Overview','analytics':'Analytics','campaigns':'My Campaigns',
+    'create-ad':'Create Campaign','targeting':'Targeting','channels':'My Channels',
+    'earn':'Earn Money','exchange':'Subscriber Exchange','wallet':'Wallet',
+    'referral':'Referral Program','settings':'Settings',
+    'admin-overview':'Admin Dashboard','admin-users':'User Management',
+    'admin-campaigns':'All Campaigns','admin-channels':'All Channels',
+    'admin-moderation':'Moderation Queue','admin-payouts':'Payouts',
+    'admin-settings':'Platform Settings'
+  };
+  document.getElementById('topbar-title').textContent = titles[page] || page;
+}
+
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ── INIT ──
+function initAll(){
+  buildDashboardChart();
+  buildAnalyticsChart();
+  buildActiveCampaigns();
+  buildActivityFeed();
+  buildCampaignsTable();
+  buildChannelsGrid();
+  buildExchangeGrid();
+  buildCategoryTags();
+  buildGeoList();
+  buildTxHistory();
+  buildUsersTable();
+  buildAdminCampaignsTable();
+  buildAdminChannelsTable();
+  buildModerationQueue();
+  buildPayoutsTable();
+  buildAdminList();
+  buildPendingReviews();
+}
+
+// ── CHARTS ──
+function buildDashboardChart(){
+  const vals = [30,55,40,70,85,62,90];
+  const c = document.getElementById('dash-chart');
+  if(!c) return;
+  c.innerHTML = vals.map(v=>`<div class="bar-col" style="height:${v}%;background:linear-gradient(180deg,var(--accent),var(--accent2));"></div>`).join('');
+}
+function buildAnalyticsChart(){
+  const vals = [40,60,45,80,95,70,100,85,110,90,120,100];
+  const c = document.getElementById('analytics-chart');
+  if(!c) return;
+  c.innerHTML = vals.map(v=>`<div class="bar-col" style="height:${(v/120)*100}%;background:linear-gradient(180deg,var(--accent),var(--accent2));"></div>`).join('');
+}
+
+// ── CAMPAIGNS ──
+function buildActiveCampaigns(){
+  const el = document.getElementById('active-campaigns-list');
+  if(!el) return;
+  el.innerHTML = state.campaigns.filter(c=>c.status==='active').map(c=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-weight:600;font-size:.85rem;">${c.name}</div>
+        <div class="text-muted">${c.link} · ${c.model.toUpperCase()}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:.85rem;font-weight:700;color:var(--green);">${c.subs} subs</div>
+        <div class="text-muted">${c.spent}/${c.budget} TON</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function buildCampaignsTable(){
+  const el = document.getElementById('campaigns-table');
+  if(!el) return;
+  el.innerHTML = state.campaigns.map(c=>`
+    <tr>
+      <td>
+        <div style="font-weight:600;">${c.name}</div>
+        <div class="text-muted">${c.link}</div>
+      </td>
+      <td><span class="tag ${c.status==='active'?'tag-green':c.status==='paused'?'tag-gold':'tag-gray'}">${c.status}</span></td>
+      <td>${c.budget} TON</td>
+      <td>${c.spent} TON</td>
+      <td>${c.subs}</td>
+      <td>${(c.spent/Math.max(c.subs,1)).toFixed(2)} TON</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="toggleCampaign(${c.id})">${c.status==='active'?'Pause':'Resume'}</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCampaign(${c.id})">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function toggleCampaign(id){
+  const c = state.campaigns.find(x=>x.id===id);
+  if(!c) return;
+  c.status = c.status==='active'?'paused':'active';
+  buildCampaignsTable();
+  buildActiveCampaigns();
+  showToast(`Campaign ${c.status==='active'?'resumed':'paused'}`, c.status==='active'?'success':'');
+}
+function deleteCampaign(id){
+  state.campaigns = state.campaigns.filter(x=>x.id!==id);
+  buildCampaignsTable(); buildActiveCampaigns();
+  showToast('Campaign deleted');
+}
+
+function submitCampaign(){
+  const name = document.getElementById('ad-name').value.trim();
+  const link = document.getElementById('ad-link').value.trim();
+  const budget = parseFloat(document.getElementById('ad-budget').value)||0;
+  if(!name||!link) { showToast('Fill in name and link','error'); return; }
+  if(budget<1) { showToast('Minimum budget is 1 TON','error'); return; }
+  if(state.balance < budget) { showToast('Insufficient balance','error'); return; }
+  state.campaigns.push({ id:Date.now(), name, link, status:'review', budget, spent:0, subs:0, model:'cps' });
+  state.balance -= budget;
+  document.getElementById('topbar-balance').textContent = state.balance + ' TON';
+  document.getElementById('ad-name').value = '';
+  document.getElementById('ad-link').value = '';
+  document.getElementById('ad-budget').value = '';
+  document.getElementById('ad-text').value = '';
+  buildCampaignsTable(); buildActiveCampaigns();
+  showToast('🚀 Campaign submitted for review!', 'success');
+  navigate('campaigns', null);
+}
+
+function updateCharCount(){
+  const v = document.getElementById('ad-text').value.length;
+  document.getElementById('char-count').textContent = v;
+}
+
+async function aiGenerateAd(){
+  const link = document.getElementById('ad-link').value || '@yourchannel';
+  showToast('🤖 AI generating...');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6', max_tokens:200,
+        messages:[{role:'user',content:`Write a short, punchy Telegram ad caption (max 130 chars) to attract subscribers to a Telegram channel named "${link}". Make it compelling with an emoji. Return only the caption text.`}]
+      })
+    });
+    const d = await res.json();
+    const txt = d.content?.[0]?.text || '';
+    document.getElementById('ad-text').value = txt.slice(0,160);
+    updateCharCount();
+    showToast('✅ AI caption generated!','success');
+  } catch(e){
+    document.getElementById('ad-text').value = `🔥 Join ${link} — The channel you've been looking for. Daily insights, real value. Don't miss out! 🚀`;
+    updateCharCount();
+    showToast('✅ Caption generated!','success');
+  }
+}
+
+// ── CHANNELS ──
+function buildChannelsGrid(){
+  const el = document.getElementById('channels-grid');
+  if(!el) return;
+  if(!state.channels.length){
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📡</div><p>No channels yet</p><button class="btn btn-primary mt-3" onclick="openModal('add-channel-modal')">Add Channel</button></div>`;
+    return;
+  }
+  el.innerHTML = state.channels.map(ch=>`
+    <div class="channel-card">
+      <div class="channel-card-header">
+        <div class="channel-avatar">📡</div>
+        <div>
+          <div class="channel-name">${ch.name}</div>
+          <div class="channel-handle">${ch.handle}</div>
+        </div>
+        <span class="tag tag-green" style="margin-left:auto;">${ch.status}</span>
+      </div>
+      <div class="channel-stats">
+        <div class="ch-stat"><div class="ch-stat-val">${ch.subs.toLocaleString()}</div><div class="ch-stat-lbl">Subs</div></div>
+        <div class="ch-stat"><div class="ch-stat-val">${ch.category}</div><div class="ch-stat-lbl">Category</div></div>
+        <div class="ch-stat"><div class="ch-stat-val" style="color:var(--green);">${ch.earned}</div><div class="ch-stat-lbl">Earned</div></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addChannel(){
+  const val = document.getElementById('new-channel-input').value.trim();
+  const cat = document.getElementById('new-channel-cat').value;
+  if(!val){ showToast('Enter channel username','error'); return; }
+  state.channels.push({ name: val, handle: val.startsWith('@')?val:'@'+val, subs:0, category:cat, earned:'0 TON', status:'pending' });
+  buildChannelsGrid();
+  closeModal('add-channel-modal');
+  showToast('✅ Channel connected! Pending verification.','success');
+}
+
+// ── EXCHANGE ──
+function buildExchangeGrid(){
+  const el = document.getElementById('exchange-grid');
+  if(!el) return;
+  const sample = [
+    {name:'Tech Daily', handle:'@techdaily', subs:'8.2K', cat:'Tech'},
+    {name:'Crypto Pulse', handle:'@cryptopulse', subs:'15K', cat:'Crypto'},
+    {name:'Art & Design', handle:'@artdesign', subs:'4.5K', cat:'Art'},
+    {name:'Finance Hub', handle:'@financehub', subs:'22K', cat:'Finance'},
+  ];
+  el.innerHTML = sample.map(ch=>`
+    <div class="channel-card">
+      <div class="channel-card-header">
+        <div class="channel-avatar">🔄</div>
+        <div><div class="channel-name">${ch.name}</div><div class="channel-handle">${ch.handle}</div></div>
+      </div>
+      <div class="flex gap-2 items-center" style="flex-wrap:wrap;">
+        <span class="tag tag-blue">${ch.cat}</span>
+        <span class="text-muted">${ch.subs} subs</span>
+        <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="requestExchange('${ch.name}')">Exchange</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function requestExchange(name){ showToast(`Exchange request sent to ${name}!`,'success'); }
+
+// ── ACTIVITY FEED ──
+function buildActivityFeed(){
+  const el = document.getElementById('activity-feed');
+  if(!el) return;
+  const feed = [
+    {icon:'👤', text:'New subscriber via <b>Crypto Grow</b>', time:'2 min ago'},
+    {icon:'💰', text:'Earned <b>0.84 TON</b> from @mychannel', time:'1 hr ago'},
+    {icon:'✅', text:'Campaign <b>Tech Boost</b> approved', time:'3 hr ago'},
+    {icon:'🔄', text:'Exchange completed with @techdaily', time:'Yesterday'},
+    {icon:'💸', text:'Deposit of <b>20 TON</b> confirmed', time:'Jul 15'},
+  ];
+  el.innerHTML = feed.map(f=>`
+    <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:1.1rem;">${f.icon}</span>
+      <div style="flex:1;"><div style="font-size:.83rem;">${f.text}</div><div class="text-muted">${f.time}</div></div>
+    </div>
+  `).join('');
+}
+
+// ── CATEGORY TAGS ──
+function buildCategoryTags(){
+  const el = document.getElementById('category-tags');
+  if(!el) return;
+  const selected = new Set(['Crypto','Tech','Art']);
+  el.innerHTML = categories.map(c=>`
+    <div onclick="toggleCat(this,'${c}')" style="padding:6px 14px;border-radius:20px;cursor:pointer;font-size:.78rem;font-weight:600;transition:all .2s;
+      background:${selected.has(c)?'rgba(37,99,235,.2)':'var(--surface)'};
+      color:${selected.has(c)?'#60a5fa':'var(--muted)'};
+      border:1px solid ${selected.has(c)?'var(--accent)':'var(--border)'};">
+      ${c}
+    </div>
+  `).join('');
+}
+
+function toggleCat(el, cat){
+  const on = el.style.background.includes('37,99');
+  el.style.background = on ? 'var(--surface)' : 'rgba(37,99,235,.2)';
+  el.style.color = on ? 'var(--muted)' : '#60a5fa';
+  el.style.borderColor = on ? 'var(--border)' : 'var(--accent)';
+}
+
+// ── GEO LIST ──
+function buildGeoList(){
+  const el = document.getElementById('geo-list');
+  if(!el) return;
+  const geo = [['🇺🇸 US',38],['🇷🇺 RU',22],['🇩🇪 DE',12],['🇬🇧 UK',8],['🇸🇦 SA',6],['🌍 Other',14]];
+  el.innerHTML = geo.map(([name,pct])=>`
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px;"><span>${name}</span><span>${pct}%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg,var(--accent),var(--accent2));"></div></div>
+    </div>
+  `).join('');
+}
+
+// ── TX HISTORY ──
+function buildTxHistory(){
+  const el = document.getElementById('tx-history');
+  if(!el) return;
+  el.innerHTML = state.transactions.map(t=>`
+    <tr>
+      <td>${t.date}</td>
+      <td>${t.type}</td>
+      <td style="color:${t.amount.startsWith('+')?'var(--green)':'var(--red)'};">${t.amount}</td>
+    </tr>
+  `).join('');
+}
+
+// ── ADMIN: USERS ──
+function buildUsersTable(filter='', role=''){
+  const el = document.getElementById('users-table');
+  if(!el) return;
+  const list = state.users.filter(u=>
+    u.username.toLowerCase().includes(filter.toLowerCase()) &&
+    (role==='' || u.role===role)
+  );
+  el.innerHTML = list.map(u=>`
+    <tr>
+      <td><b>${u.username}</b></td>
+      <td><span class="tag ${u.role==='admin'?'tag-gold':u.role==='advertiser'?'tag-blue':'tag-green'}">${u.role}</span></td>
+      <td>${u.balance}</td>
+      <td>${u.campaigns}</td>
+      <td>${u.channels}</td>
+      <td>${u.joined}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="viewUser('${u.username}')">View</button>
+        <button class="btn btn-danger btn-sm" onclick="banUser('${u.username}')">Ban</button>
+      </td>
+    </tr>
+  `).join('');
+}
+function filterUsers(v){ buildUsersTable(v, ''); }
+function filterUserRole(v){ buildUsersTable('', v); }
+function viewUser(u){ showToast(`Viewing user: ${u}`); }
+function banUser(u){ showToast(`User ${u} banned`,'error'); }
+
+// ── ADMIN: ALL CAMPAIGNS ──
+function buildAdminCampaignsTable(filter=''){
+  const el = document.getElementById('admin-campaigns-table');
+  if(!el) return;
+  const list = state.allCampaigns.filter(c=>filter===''||c.status===filter);
+  el.innerHTML = list.map(c=>`
+    <tr>
+      <td><b>${c.name}</b></td>
+      <td>${c.owner}</td>
+      <td><span class="tag ${c.status==='active'?'tag-green':c.status==='review'?'tag-gold':c.status==='paused'?'tag-blue':'tag-gray'}">${c.status}</span></td>
+      <td>${c.budget}</td>
+      <td>${c.spent}</td>
+      <td>
+        ${c.status==='review'?`<button class="btn btn-success btn-sm" onclick="approveCampaign('${c.name}')">Approve</button> <button class="btn btn-danger btn-sm" onclick="rejectCampaign('${c.name}')">Reject</button>`:''}
+        ${c.status==='active'?`<button class="btn btn-ghost btn-sm" onclick="showToast('Campaign paused')">Pause</button>`:''}
+      </td>
+    </tr>
+  `).join('');
+}
+function filterAdminCampaigns(v){ buildAdminCampaignsTable(v); }
+function approveCampaign(name){ const c=state.allCampaigns.find(x=>x.name===name); if(c){c.status='active'; buildAdminCampaignsTable(); showToast(`✅ ${name} approved`,'success');} }
+function rejectCampaign(name){ const c=state.allCampaigns.find(x=>x.name===name); if(c){c.status='rejected'; buildAdminCampaignsTable(); showToast(`❌ ${name} rejected`,'error');} }
+
+// ── ADMIN: ALL CHANNELS ──
+function buildAdminChannelsTable(){
+  const el = document.getElementById('admin-channels-table');
+  if(!el) return;
+  el.innerHTML = state.allChannels.map(c=>`
+    <tr>
+      <td><b>${c.channel}</b></td>
+      <td>${c.owner}</td>
+      <td>${c.subs}</td>
+      <td><span class="tag tag-blue">${c.category}</span></td>
+      <td>${c.revenue}</td>
+      <td><span class="tag ${c.status==='active'?'tag-green':'tag-red'}">${c.status}</span></td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="showToast('Channel details')">View</button>
+        <button class="btn btn-danger btn-sm" onclick="suspendChannel('${c.channel}')">Suspend</button>
+      </td>
+    </tr>
+  `).join('');
+}
+function suspendChannel(ch){ const c=state.allChannels.find(x=>x.channel===ch); if(c){c.status=c.status==='active'?'suspended':'active'; buildAdminChannelsTable(); showToast(`Channel ${c.status}`);} }
+
+// ── ADMIN: MODERATION ──
+function buildModerationQueue(){
+  const el = document.getElementById('moderation-queue');
+  if(!el) return;
+  el.innerHTML = state.modQueue.map((m,i)=>`
+    <div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <span class="tag ${m.type==='Campaign'?'tag-blue':'tag-purple'}" style="margin-right:8px;">${m.type}</span>
+          <b>${m.title}</b>
+          <div class="text-muted" style="margin-top:4px;">By ${m.owner} · ${m.reason}</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-success btn-sm" onclick="approveItem(${i})">✓ Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectItem(${i})">✗ Reject</button>
+          <button class="btn btn-ghost btn-sm" onclick="showToast('Viewing ${m.title}')">View</button>
+        </div>
+      </div>
+    </div>
+  `).join('') || '<div class="empty-state"><div class="empty-icon">✅</div><p>All clear! No pending items.</p></div>';
+}
+function approveItem(i){ state.modQueue.splice(i,1); buildModerationQueue(); showToast('✅ Approved!','success'); }
+function rejectItem(i){ state.modQueue.splice(i,1); buildModerationQueue(); showToast('❌ Rejected','error'); }
+
+// ── ADMIN: PAYOUTS ──
+function buildPayoutsTable(){
+  const el = document.getElementById('payouts-table');
+  if(!el) return;
+  el.innerHTML = state.payouts.map((p,i)=>`
+    <tr>
+      <td><b>${p.user}</b></td>
+      <td style="color:var(--gold);">${p.amount}</td>
+      <td style="font-family:monospace;font-size:.72rem;">${p.wallet}</td>
+      <td>${p.requested}</td>
+      <td><span class="tag ${p.status==='paid'?'tag-green':'tag-gold'}">${p.status}</span></td>
+      <td>
+        ${p.status==='pending'?`<button class="btn btn-success btn-sm" onclick="payout(${i})">Pay Now</button>`:'<span class="text-muted">—</span>'}
+      </td>
+    </tr>
+  `).join('');
+}
+function payout(i){ state.payouts[i].status='paid'; buildPayoutsTable(); showToast(`✅ Payout sent to ${state.payouts[i].user}`,'success'); }
+function processAllPayouts(){ state.payouts.forEach(p=>p.status='paid'); buildPayoutsTable(); showToast('✅ All payouts processed!','success'); }
+
+// ── ADMIN LIST ──
+function buildAdminList(){
+  const el = document.getElementById('admin-list');
+  if(!el) return;
+  el.innerHTML = state.admins.map(a=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div class="avatar" style="width:30px;height:30px;font-size:.75rem;">${a.replace('@','').charAt(0).toUpperCase()}</div>
+        <b>${a}</b>
+      </div>
+      <span class="tag tag-gold">Super Admin</span>
+    </div>
+  `).join('');
+}
+function addAdmin(){
+  const val = document.getElementById('new-admin-input').value.trim();
+  if(!val){ showToast('Enter username','error'); return; }
+  const u = val.startsWith('@')?val:'@'+val;
+  if(!state.admins.includes(u)) state.admins.push(u);
+  buildAdminList(); closeModal('add-admin-modal');
+  showToast(`✅ ${u} granted admin access`,'success');
+}
+
+// ── PENDING REVIEWS ──
+function buildPendingReviews(){
+  const el = document.getElementById('pending-reviews-list');
+  if(!el) return;
+  el.innerHTML = state.modQueue.slice(0,3).map((m,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-size:.83rem;font-weight:600;">${m.title}</div>
+        <div class="text-muted">${m.owner} · ${m.type}</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-success btn-sm" onclick="approveItem(${i}); buildPendingReviews();">✓</button>
+        <button class="btn btn-danger btn-sm" onclick="rejectItem(${i}); buildPendingReviews();">✗</button>
+      </div>
+    </div>
+  `).join('') || '<div class="text-muted" style="padding:12px 0;">No pending items</div>';
+}
+
+// ── WALLET ──
+function doDeposit(){
+  const amt = parseFloat(document.getElementById('dep-amount').value)||0;
+  if(amt<1){ showToast('Min deposit 1 TON','error'); return; }
+  state.balance += amt;
+  state.transactions.unshift({date:'Now', type:'Deposit', amount:`+${amt} TON`});
+  document.getElementById('topbar-balance').textContent = state.balance+' TON';
+  document.getElementById('wallet-balance').textContent = state.balance+' TON';
+  buildTxHistory(); closeModal('deposit-modal');
+  showToast(`✅ Deposited ${amt} TON`,'success');
+}
+function doWithdraw(){ closeModal('withdraw-modal'); showToast('Withdrawal request submitted','success'); }
+
+// ── HELPERS ──
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+
+function showToast(msg, type=''){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>{ t.className=''; }, 3000);
+}
+
+function saveTargeting(){ showToast('✅ Targeting saved!','success'); }
+function saveSettings(){ showToast('✅ Settings saved!','success'); }
+function savePlatformSettings(){ showToast('✅ Platform settings saved!','success'); }
+function copyRef(){
+  const v = document.getElementById('ref-link').value;
+  navigator.clipboard?.writeText(v);
+  showToast('✅ Referral link copied!','success');
+}
+</script>
+</body>
+</html>
