@@ -187,6 +187,39 @@
   #toast.success{border-left:3px solid var(--green);}
   #toast.error{border-left:3px solid var(--red);}
 
+  /* RICH EDITOR TOOLBAR */
+  .edit-toolbar{display:flex;gap:4px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:9px 9px 0 0;padding:6px;border-bottom:none;}
+  .edit-btn{width:32px;height:32px;border-radius:6px;background:var(--card);border:1px solid var(--border);color:var(--sub);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.82rem;transition:all .15s;}
+  .edit-btn:hover{background:var(--border);color:var(--text);}
+  .edit-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .edit-btn.b{font-weight:800;}
+  .edit-btn.i{font-style:italic;font-family:serif;}
+  .edit-btn.u{text-decoration:underline;}
+  .edit-btn.s{text-decoration:line-through;}
+  .edit-sep{width:1px;background:var(--border);margin:2px 3px;}
+  .editable-box{
+    min-height:110px;background:var(--surface);border:1px solid var(--border);border-top:none;
+    border-radius:0 0 9px 9px;padding:11px 12px;font-size:.86rem;line-height:1.55;color:var(--text);
+    outline:none;word-wrap:break-word;
+  }
+  .editable-box:empty::before{content:attr(data-placeholder);color:var(--muted);}
+  .editable-box b,.editable-box strong{font-weight:800;}
+  .editable-box .tg-spoiler{background:var(--muted);color:transparent;border-radius:4px;cursor:pointer;transition:all .15s;}
+  .editable-box .tg-spoiler:hover{background:rgba(100,116,139,.4);color:var(--text);}
+  .editable-box code{background:var(--card);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-family:monospace;font-size:.82em;}
+  .editable-box .cemoji{display:inline-block;position:relative;font-size:1.05em;}
+  .editable-box .cemoji::after{content:'⭐';position:absolute;top:-5px;right:-6px;font-size:.5em;}
+
+  /* EMOJI PANEL */
+  .emoji-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-top:8px;padding:10px;max-height:220px;overflow-y:auto;}
+  .emoji-tabs{display:flex;gap:6px;margin-bottom:8px;}
+  .emoji-tab{padding:4px 10px;border-radius:20px;font-size:.68rem;font-weight:700;cursor:pointer;background:var(--card);color:var(--muted);border:1px solid var(--border);}
+  .emoji-tab.active{background:var(--gold);color:#000;border-color:var(--gold);}
+  .emoji-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:4px;}
+  .emoji-cell{position:relative;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;border-radius:7px;cursor:pointer;transition:background .15s;}
+  .emoji-cell:hover{background:var(--card);}
+  .emoji-cell .pbadge{position:absolute;top:-2px;right:-2px;font-size:.5rem;}
+
   .grad{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
   .flex{display:flex;} .gap-2{gap:8px;} .gap-3{gap:12px;} .items-center{align-items:center;} .justify-between{justify-content:space-between;} .mt-2{margin-top:8px;} .mt-3{margin-top:12px;} .text-muted{color:var(--muted);font-size:.76rem;}
   .section-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
@@ -217,6 +250,7 @@
 
       <div class="nav-section">Advertiser</div>
       <div class="nav-item" onclick="navigate('campaigns',this)"><span class="icon">📣</span> Campaigns <span class="nbadge">3</span></div>
+      <div class="nav-item" onclick="navigate('create-post',this)"><span class="icon">📝</span> Create Post</div>
       <div class="nav-item" onclick="navigate('create-ad',this)"><span class="icon">✏️</span> Create Ad</div>
       <div class="nav-item" onclick="navigate('post-tg',this)"><span class="icon">📤</span> Post to Telegram</div>
       <div class="nav-item" onclick="navigate('targeting',this)"><span class="icon">🎯</span> Targeting</div>
@@ -241,6 +275,7 @@
       <div class="nav-item" onclick="navigate('admin-moderation',this)"><span class="icon">🔍</span> Moderation <span class="nbadge">5</span></div>
       <div class="nav-item" onclick="navigate('admin-payouts',this)"><span class="icon">💸</span> Payouts</div>
       <div class="nav-item" onclick="navigate('admin-settings',this)"><span class="icon">🔧</span> Platform Settings</div>
+      <div class="nav-item" onclick="openTelegramAdminChat()"><span class="icon">💬</span> Chat with Bot</div>
     </div>
   </div>
 
@@ -368,6 +403,58 @@
     </div>
 
     <!-- ── CREATE AD ── -->
+    <!-- ── CREATE POST (standalone, not tied to a campaign) ── -->
+    <div class="page" id="page-create-post">
+      <div style="max-width:600px;">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📝 Create Post</div><span class="tag tag-purple">General</span></div>
+          <p class="text-muted" style="margin-bottom:14px;">Draft a general post — announcement, update, or anything not tied to an ad campaign.</p>
+
+          <div class="form-group">
+            <label class="form-label">Target Channel (optional)</label>
+            <input class="form-control" id="cp-channel" placeholder="@yourchannel"/>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Post Content</label>
+            <textarea class="form-control" id="cp-text" rows="4" placeholder="What's on your mind?" maxlength="1024" oninput="document.getElementById('cp-char-count').textContent=this.value.length;S.cpCaptionHtml=null;S.cpCaptionTgHtml=null;"></textarea>
+            <div style="text-align:right;font-size:.68rem;color:var(--muted);margin-top:3px;"><span id="cp-char-count">0</span>/1024</div>
+          </div>
+
+          <div class="flex gap-2" style="flex-wrap:wrap;margin-bottom:14px;">
+            <button class="btn btn-ghost btn-sm" onclick="aiGenerateCPCaption()">🤖 AI Caption</button>
+            <button class="btn btn-ghost btn-sm" onclick="aiGenerateCPImage()">🎨 AI Image</button>
+            <button class="btn btn-purple btn-sm" onclick="openEditPost('cp')">✏️ Edit Post</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearCPImage()">✕ Clear Image</button>
+          </div>
+
+          <div id="cp-img-wrap" style="display:none;margin-bottom:14px;">
+            <img id="cp-img-preview" class="img-preview show" alt="Generated image"/>
+          </div>
+
+          <div class="tg-preview" id="cp-preview-box" style="display:none;">
+            <div class="tg-channel" id="cp-prev-channel">@channel</div>
+            <img id="cp-prev-img" style="width:100%;border-radius:8px;margin-bottom:8px;display:none;" alt=""/>
+            <div class="tg-caption" id="cp-prev-caption"></div>
+            <div class="tg-meta">abutaAds · just now</div>
+          </div>
+
+          <div class="flex gap-2 mt-3" style="flex-wrap:wrap;">
+            <button class="btn btn-ghost" onclick="previewCP()">👁 Preview</button>
+            <button class="btn btn-gold" onclick="saveDraftCP()">💾 Save Draft</button>
+            <button class="btn btn-primary" onclick="openModal('schedule-modal')">⏰ Schedule</button>
+            <button class="btn btn-success" id="cp-send-btn" onclick="sendCPToTelegram()" style="flex:1;">📤 Send Now</button>
+          </div>
+          <div id="cp-send-result" style="margin-top:10px;font-size:.78rem;display:none;"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">📄 Drafts</div></div>
+          <div id="cp-drafts-list"><div class="empty-state"><div class="empty-icon">📝</div><p>No drafts yet</p></div></div>
+        </div>
+      </div>
+    </div>
+
     <div class="page" id="page-create-ad">
       <div style="max-width:600px;">
         <div class="card">
@@ -386,6 +473,7 @@
           <div class="flex gap-2 mt-2" style="flex-wrap:wrap;">
             <button class="btn btn-ghost btn-sm" onclick="aiGenerateCaption()">🤖 AI Caption</button>
             <button class="btn btn-ghost btn-sm" onclick="aiGenerateImage()">🎨 AI Image</button>
+            <button class="btn btn-purple btn-sm" onclick="openEditPost('ad')">✏️ Edit</button>
           </div>
           <div id="ad-img-preview-wrap" style="display:none;margin-top:10px;">
             <img id="ad-img-preview" class="img-preview show" alt="Generated image"/>
@@ -419,12 +507,14 @@
 
           <div class="form-group">
             <label class="form-label">Caption / Message</label>
-            <textarea class="form-control" id="tg-caption" rows="3" placeholder="Write your message..." maxlength="1024"></textarea>
+            <textarea class="form-control" id="tg-caption" rows="3" placeholder="Write your message..." maxlength="1024" oninput="syncTgCaptionFromTextarea()"></textarea>
+            <div style="text-align:right;font-size:.68rem;color:var(--muted);margin-top:3px;"><span id="tg-char-count">0</span>/1024</div>
           </div>
 
           <div class="flex gap-2" style="flex-wrap:wrap;margin-bottom:14px;">
             <button class="btn btn-ghost btn-sm" onclick="aiTgCaption()">🤖 AI Generate Caption</button>
             <button class="btn btn-ghost btn-sm" onclick="aiTgImage()">🎨 AI Generate Image</button>
+            <button class="btn btn-purple btn-sm" onclick="openEditPost()">✏️ Edit Post</button>
             <button class="btn btn-ghost btn-sm" onclick="clearTgImage()">✕ Clear Image</button>
           </div>
 
@@ -586,6 +676,17 @@
         <span style="font-size:1.3rem;">⭐</span>
         <div><div style="font-weight:700;">Admin Control Center</div><div class="text-muted">Welcome, @abutA_art</div></div>
       </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">💬 Telegram Admin Chat</div><span class="tag tag-blue">Deep Link</span></div>
+        <p class="text-muted" style="margin-bottom:12px;">Open a direct personal chat with your bot in the Telegram app to manage it, test messages, or receive admin alerts.</p>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Bot Username</label><input class="form-control" id="admin-bot-username" placeholder="abutaAds_bot" value="abutaAds_bot"/></div>
+          <div class="form-group"><label class="form-label">Optional Start Param</label><input class="form-control" id="admin-bot-startparam" placeholder="admin"/></div>
+        </div>
+        <button class="btn btn-primary w-full" onclick="openTelegramAdminChat()">💬 Open Chat in Telegram</button>
+      </div>
+
       <div class="stats-grid">
         <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-value">1,284</div><div class="stat-label">Total Users</div><div class="stat-change up">↑ 43 today</div></div>
         <div class="stat-card green"><div class="stat-icon">📣</div><div class="stat-value">287</div><div class="stat-label">Total Campaigns</div></div>
@@ -728,6 +829,61 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="edit-post-modal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header"><div class="modal-title">✏️ Edit Post</div><button class="modal-close" onclick="closeModal('edit-post-modal')">✕</button></div>
+
+    <div class="form-group">
+      <label class="form-label">Formatting</label>
+      <div class="edit-toolbar">
+        <div class="edit-btn b" onclick="fmtCmd('bold')" title="Bold">B</div>
+        <div class="edit-btn i" onclick="fmtCmd('italic')" title="Italic">I</div>
+        <div class="edit-btn u" onclick="fmtCmd('underline')" title="Underline">U</div>
+        <div class="edit-btn s" onclick="fmtCmd('strikeThrough')" title="Strikethrough">S</div>
+        <div class="edit-sep"></div>
+        <div class="edit-btn" onclick="fmtSpoiler()" title="Spoiler">👁‍🗨</div>
+        <div class="edit-btn" onclick="fmtCode()" title="Monospace / Code">&lt;/&gt;</div>
+        <div class="edit-sep"></div>
+        <div class="edit-btn" onclick="fmtClear()" title="Clear formatting">⌫</div>
+        <div class="edit-btn" onclick="toggleEmojiPanel()" title="Emoji">😊</div>
+      </div>
+      <div class="editable-box" id="edit-post-box" contenteditable="true" data-placeholder="Write your post..." oninput="onEditBoxInput()"></div>
+      <div style="text-align:right;font-size:.68rem;color:var(--muted);margin-top:3px;"><span id="edit-char-count">0</span>/1024</div>
+    </div>
+
+    <div class="emoji-panel" id="emoji-panel" style="display:none;">
+      <div class="emoji-tabs" style="flex-wrap:wrap;">
+        <div class="emoji-tab active" onclick="switchEmojiTab('faces',this)">😀 Faces</div>
+        <div class="emoji-tab" onclick="switchEmojiTab('symbols',this)">✨ Symbols</div>
+        <div class="emoji-tab" onclick="switchEmojiTab('objects',this)">🚀 Objects</div>
+        <div class="emoji-tab" onclick="switchEmojiTab('gestures',this)">👍 Gestures</div>
+        <div class="emoji-tab" onclick="switchEmojiTab('premium',this)">⭐ Premium</div>
+        <div class="emoji-tab" onclick="switchEmojiTab('fonts',this)">𝐀 Fonts</div>
+      </div>
+      <div class="emoji-grid" id="emoji-grid-faces"></div>
+      <div class="emoji-grid" id="emoji-grid-symbols" style="display:none;"></div>
+      <div class="emoji-grid" id="emoji-grid-objects" style="display:none;"></div>
+      <div class="emoji-grid" id="emoji-grid-gestures" style="display:none;"></div>
+      <div class="emoji-grid" id="emoji-grid-premium" style="display:none;"></div>
+      <div id="font-style-panel" style="display:none;">
+        <div class="text-muted" style="margin-bottom:8px;">Pick a style, then it transforms your current selection (or type after picking):</div>
+        <div id="font-style-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:12px;">
+      <label class="form-label">Live Preview</label>
+      <div class="tg-preview">
+        <div class="tg-channel">Preview</div>
+        <div class="tg-caption" id="edit-post-preview"></div>
+        <div class="tg-meta">Telegram will render bold / italic / underline / strikethrough / spoiler / code — "fonts" are simulated with these styles since Telegram has no custom font support.</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary w-full" onclick="applyEditPost()">✅ Apply to Post</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -778,6 +934,14 @@ const S = {
   ],
   tgImage:null,
   adImage:null,
+  cpImage:null,
+  tgCaptionHtml:null,
+  tgCaptionTgHtml:null,
+  adCaptionHtml:null,
+  adCaptionTgHtml:null,
+  cpCaptionHtml:null,
+  cpCaptionTgHtml:null,
+  cpDrafts:[],
   sidebarOpen: false,
 };
 
@@ -857,6 +1021,18 @@ function logout(){
   document.getElementById('nav-admin').style.display='none';
   document.getElementById('admin-badge').style.display='none';
 }
+
+// ── TELEGRAM ADMIN CHAT (deep link — opens the real Telegram app) ──
+function openTelegramAdminChat(){
+  const raw=(document.getElementById('admin-bot-username')?.value||'abutaAds_bot').trim().replace('@','');
+  if(!raw){showToast('Enter a bot username first','error');return;}
+  const startParam=(document.getElementById('admin-bot-startparam')?.value||'').trim();
+  const url = startParam
+    ? `https://t.me/${raw}?start=${encodeURIComponent(startParam)}`
+    : `https://t.me/${raw}`;
+  window.open(url,'_blank');
+  showToast('💬 Opening Telegram chat with @'+raw,'info');
+}
 function updateBalance(){
   document.getElementById('topbar-balance').textContent=S.balance+' TON';
   document.getElementById('wallet-balance').textContent=S.balance+' TON';
@@ -871,6 +1047,7 @@ function navigate(page,el){
   if(el)el.classList.add('active');
   const titles={
     'dashboard':'Overview','analytics':'Analytics','campaigns':'My Campaigns',
+    'create-post':'Create Post',
     'create-ad':'Create Campaign','post-tg':'Post to Telegram','targeting':'Targeting',
     'channels':'My Channels','earn':'Earn','exchange':'Exchange','wallet':'Wallet',
     'referral':'Referral','settings':'Settings','admin-overview':'Admin Dashboard',
@@ -889,7 +1066,7 @@ function initAll(){
   buildChannelsGrid();buildExchangeGrid();buildCategoryTags();buildGeoList();
   buildTxHistory();buildUsersTable('','');buildAdminCampaignsTable('');
   buildAdminChannelsTable();buildModerationQueue();buildPayoutsTable();
-  buildAdminList();buildPendingReviews();
+  buildAdminList();buildPendingReviews();buildCPDraftsList();
 }
 
 function buildChart(id,vals,h){
@@ -950,10 +1127,12 @@ async function aiGenerateCaption(){
     const txt=d.content?.[0]?.text||'';
     document.getElementById('ad-text').value=txt.slice(0,160);
     document.getElementById('char-count').textContent=txt.length;
+    S.adCaptionHtml=null;S.adCaptionTgHtml=null;
     showToast('✅ Caption ready','success');
   }catch{
     document.getElementById('ad-text').value=`🔥 Join ${link} — Real value every day. Don't miss out! 🚀`;
     document.getElementById('char-count').textContent=document.getElementById('ad-text').value.length;
+    S.adCaptionHtml=null;S.adCaptionTgHtml=null;
     showToast('✅ Caption generated','success');
   }
 }
@@ -996,9 +1175,13 @@ async function aiTgCaption(){
     const d=await r.json();
     const txt=d.content?.[0]?.text||'';
     document.getElementById('tg-caption').value=txt.slice(0,1024);
+    document.getElementById('tg-char-count').textContent=Math.min(txt.length,1024);
+    S.tgCaptionHtml=null;S.tgCaptionTgHtml=null;
     showToast('✅ Caption ready','success');
   }catch{
     document.getElementById('tg-caption').value=`🚀 Big things are happening on ${channel}! Join us now and be part of something amazing. Don't miss out! 🔥`;
+    document.getElementById('tg-char-count').textContent=document.getElementById('tg-caption').value.length;
+    S.tgCaptionHtml=null;S.tgCaptionTgHtml=null;
     showToast('✅ Caption generated','success');
   }
 }
@@ -1040,12 +1223,170 @@ function clearTgImage(){
   document.getElementById('tg-img-preview').src='';
 }
 
+// ══════════════════ CREATE POST (standalone, general posts) ══════════════════
+async function aiGenerateCPCaption(){
+  const channel=document.getElementById('cp-channel').value||'your audience';
+  showToast('🤖 Generating caption...');
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,
+        messages:[{role:'user',content:`Write an engaging general Telegram post for "${channel}". Max 200 chars, include 1-2 emojis. Return only the post text.`}]})});
+    const d=await r.json();
+    const txt=d.content?.[0]?.text||'';
+    document.getElementById('cp-text').value=txt.slice(0,1024);
+    document.getElementById('cp-char-count').textContent=Math.min(txt.length,1024);
+    S.cpCaptionHtml=null;S.cpCaptionTgHtml=null;
+    showToast('✅ Caption ready','success');
+  }catch{
+    document.getElementById('cp-text').value=`📝 Quick update for ${channel} — stay tuned for more! 🚀`;
+    document.getElementById('cp-char-count').textContent=document.getElementById('cp-text').value.length;
+    S.cpCaptionHtml=null;S.cpCaptionTgHtml=null;
+    showToast('✅ Caption generated','success');
+  }
+}
+async function aiGenerateCPImage(){
+  showToast('🎨 Generating image...');
+  const channel=document.getElementById('cp-channel').value||'abutaAds';
+  const caption=document.getElementById('cp-text').value||'New post';
+  const canvas=document.createElement('canvas');canvas.width=800;canvas.height=420;
+  const ctx=canvas.getContext('2d');
+  const h=(channel+caption).split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  const colors=[['#2563eb','#7c3aed'],['#059669','#2563eb'],['#f59e0b','#ef4444'],['#7c3aed','#ec4899'],['#0891b2','#7c3aed']];
+  const [c1,c2]=colors[h%colors.length];
+  const grad=ctx.createLinearGradient(0,0,800,420);
+  grad.addColorStop(0,c1);grad.addColorStop(1,c2);
+  ctx.fillStyle=grad;ctx.fillRect(0,0,800,420);
+  ctx.fillStyle='rgba(255,255,255,0.07)';
+  [[600,80,140],[700,350,100],[100,300,90],[200,60,60]].forEach(([x,y,r])=>{ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();});
+  ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(40,150,720,120);
+  ctx.fillStyle='#fff';ctx.textAlign='center';
+  ctx.font='bold 34px Segoe UI,sans-serif';ctx.fillText(channel,400,200);
+  ctx.font='16px Segoe UI,sans-serif';ctx.fillStyle='rgba(255,255,255,0.85)';
+  const words=caption.slice(0,70).split(' ');let line='';
+  words.forEach(w=>{if((line+w).length>44){ctx.fillText(line,400,235);line=w+' ';}else{line+=w+' ';}});
+  if(line)ctx.fillText(line,400,255);
+  ctx.font='13px Segoe UI,sans-serif';ctx.fillStyle='rgba(255,255,255,0.5)';ctx.fillText('abutaAds · Post',400,390);
+  const url=canvas.toDataURL('image/jpeg',0.92);
+  S.cpImage=url;
+  document.getElementById('cp-img-preview').src=url;
+  document.getElementById('cp-img-wrap').style.display='block';
+  showToast('✅ Image generated','success');
+}
+function clearCPImage(){
+  S.cpImage=null;
+  document.getElementById('cp-img-wrap').style.display='none';
+  document.getElementById('cp-img-preview').src='';
+}
+function previewCP(){
+  const channel=document.getElementById('cp-channel').value||'@channel';
+  const caption=document.getElementById('cp-text').value||'(no content)';
+  const box=document.getElementById('cp-preview-box');
+  document.getElementById('cp-prev-channel').textContent=channel;
+  const prevCap=document.getElementById('cp-prev-caption');
+  if(S.cpCaptionHtml && plainTextFromHtml(S.cpCaptionHtml)===document.getElementById('cp-text').value){
+    prevCap.innerHTML=S.cpCaptionHtml;
+  } else {
+    prevCap.textContent=caption;
+  }
+  const img=document.getElementById('cp-prev-img');
+  if(S.cpImage){img.src=S.cpImage;img.style.display='block';}
+  else{img.style.display='none';}
+  box.style.display='block';
+}
+function saveDraftCP(){
+  const text=document.getElementById('cp-text').value.trim();
+  if(!text && !S.cpImage){showToast('Nothing to save','error');return;}
+  S.cpDrafts.unshift({
+    id:Date.now(),
+    channel:document.getElementById('cp-channel').value||'',
+    text, image:S.cpImage, html:S.cpCaptionHtml,
+    saved:new Date().toLocaleString(),
+  });
+  buildCPDraftsList();
+  showToast('💾 Draft saved','success');
+}
+function buildCPDraftsList(){
+  const el=document.getElementById('cp-drafts-list');if(!el)return;
+  if(!S.cpDrafts.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📝</div><p>No drafts yet</p></div>';return;}
+  el.innerHTML=S.cpDrafts.map(d=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);gap:8px;">
+      <div style="overflow:hidden;"><div style="font-weight:600;font-size:.82rem;">${d.channel||'(no channel)'}</div><div class="text-muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;">${(d.text||'(image only)').slice(0,60)}</div></div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" onclick="loadDraftCP(${d.id})">Load</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteDraftCP(${d.id})">Del</button>
+      </div>
+    </div>`).join('');
+}
+function loadDraftCP(id){
+  const d=S.cpDrafts.find(x=>x.id===id);if(!d)return;
+  document.getElementById('cp-channel').value=d.channel||'';
+  document.getElementById('cp-text').value=d.text||'';
+  document.getElementById('cp-char-count').textContent=(d.text||'').length;
+  S.cpImage=d.image||null;
+  S.cpCaptionHtml=d.html||null;
+  if(S.cpImage){document.getElementById('cp-img-preview').src=S.cpImage;document.getElementById('cp-img-wrap').style.display='block';}
+  else{document.getElementById('cp-img-wrap').style.display='none';}
+  showToast('📄 Draft loaded','success');
+}
+function deleteDraftCP(id){
+  S.cpDrafts=S.cpDrafts.filter(x=>x.id!==id);
+  buildCPDraftsList();
+  showToast('Draft deleted');
+}
+async function sendCPToTelegram(){
+  const token=document.getElementById('bot-token')?.value.trim();
+  const chatId=document.getElementById('cp-channel').value.trim();
+  const plainCaption=document.getElementById('cp-text').value.trim();
+  if(!token){showToast('Set your bot token in "Post to Telegram" first','error');return;}
+  if(!chatId){showToast('Enter target channel','error');return;}
+  if(!plainCaption&&!S.cpImage){showToast('Add content or image','error');return;}
+  let captionToSend=escapeHtml(plainCaption);
+  if(S.cpCaptionHtml && plainTextFromHtml(S.cpCaptionHtml).trim()===plainCaption && S.cpCaptionTgHtml){
+    captionToSend=S.cpCaptionTgHtml;
+  }
+  const btn=document.getElementById('cp-send-btn');
+  const res=document.getElementById('cp-send-result');
+  btn.disabled=true;btn.textContent='⏳ Sending...';
+  res.style.display='none';
+  try{
+    let ok=false,desc='';
+    if(S.cpImage){
+      const blob=await(await fetch(S.cpImage)).blob();
+      const fd=new FormData();
+      fd.append('chat_id',chatId);
+      fd.append('photo',blob,'post.jpg');
+      if(plainCaption)fd.append('caption',captionToSend);
+      fd.append('parse_mode','HTML');
+      const r=await fetch(`https://api.telegram.org/bot${token}/sendPhoto`,{method:'POST',body:fd});
+      const d=await r.json();ok=d.ok;desc=d.description;
+    } else {
+      const r=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({chat_id:chatId,text:captionToSend,parse_mode:'HTML'})});
+      const d=await r.json();ok=d.ok;desc=d.description;
+    }
+    res.style.display='block';
+    if(ok){res.style.color='var(--green)';res.textContent='✅ Posted successfully to '+chatId;showToast('✅ Posted!','success');}
+    else{res.style.color='var(--red)';res.textContent='❌ Error: '+(desc||'Failed');showToast('Send failed','error');}
+  }catch(err){
+    res.style.display='block';res.style.color='var(--red)';res.textContent='❌ Error: '+err.message;
+    showToast('Send failed','error');
+  }finally{
+    btn.disabled=false;btn.textContent='📤 Send Now';
+  }
+}
+
 function previewPost(){
   const channel=document.getElementById('tg-channel').value||'@channel';
   const caption=document.getElementById('tg-caption').value||'(no caption)';
   const box=document.getElementById('tg-preview-box');
   document.getElementById('tg-prev-channel').textContent=channel;
-  document.getElementById('tg-prev-caption').textContent=caption;
+  const prevCap=document.getElementById('tg-prev-caption');
+  if(S.tgCaptionHtml && plainTextFromHtml(S.tgCaptionHtml)===document.getElementById('tg-caption').value){
+    prevCap.innerHTML=S.tgCaptionHtml;
+  } else {
+    prevCap.textContent=caption;
+  }
   const img=document.getElementById('tg-prev-img');
   if(S.tgImage){img.src=S.tgImage;img.style.display='block';}
   else{img.style.display='none';}
@@ -1055,10 +1396,17 @@ function previewPost(){
 async function sendToTelegram(){
   const token=document.getElementById('bot-token').value.trim();
   const chatId=document.getElementById('tg-channel').value.trim();
-  const caption=document.getElementById('tg-caption').value.trim();
+  const plainCaption=document.getElementById('tg-caption').value.trim();
+  // Prefer the rich-formatted version from the editor if it still matches the current text
+  let captionToSend=plainCaption;
+  if(S.tgCaptionHtml && plainTextFromHtml(S.tgCaptionHtml).trim()===plainCaption && S.tgCaptionTgHtml){
+    captionToSend=S.tgCaptionTgHtml;
+  } else {
+    captionToSend=escapeHtml(plainCaption);
+  }
   if(!token){showToast('Enter your bot token','error');return;}
   if(!chatId){showToast('Enter channel username','error');return;}
-  if(!caption&&!S.tgImage){showToast('Add caption or image','error');return;}
+  if(!plainCaption&&!S.tgImage){showToast('Add caption or image','error');return;}
   const btn=document.getElementById('send-btn');
   const res=document.getElementById('send-result');
   btn.disabled=true;btn.textContent='⏳ Sending...';
@@ -1071,7 +1419,7 @@ async function sendToTelegram(){
       const fd=new FormData();
       fd.append('chat_id',chatId);
       fd.append('photo',blob,'ad.jpg');
-      if(caption)fd.append('caption',caption);
+      if(plainCaption)fd.append('caption',captionToSend);
       fd.append('parse_mode','HTML');
       const r=await fetch(`https://api.telegram.org/bot${token}/sendPhoto`,{method:'POST',body:fd});
       const d=await r.json();
@@ -1081,7 +1429,7 @@ async function sendToTelegram(){
       // Send text only
       const r=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({chat_id:chatId,text:caption,parse_mode:'HTML'})});
+        body:JSON.stringify({chat_id:chatId,text:captionToSend,parse_mode:'HTML'})});
       const d=await r.json();
       ok=d.ok;
       if(!ok){res.style.display='block';res.style.color='var(--red)';res.textContent='❌ Error: '+(d.description||'Failed');showToast('Send failed','error');}
@@ -1238,6 +1586,244 @@ function buildAdminCampaignsTable(){}
 function buildAdminChannelsTable(){}
 function buildModerationQueue(){}
 function buildPendingReviews(){}
+
+// ══════════════════ EDIT POST (rich formatting + emoji) ══════════════════
+const EMOJI_CATEGORIES={
+  faces:['😀','😂','😍','😎','🤔','😅','🥳','😱','😉','🙃','😴','🤩','😇','🥺','😤','🤗','🙄','😏','😬','🥴','😮','😌','🤯','🫡','🤠','😈','👻','💀','🤡','🥶'],
+  symbols:['🔥','💯','⚡','✅','❌','⭐','🌟','✨','💫','❤️','💔','💥','❗','❓','♻️','🔔','🔕','🚫','⚠️','🔞','🆕','🆓','🔒','🔓','💠','🔱','☑️','➡️','⬆️','🔗'],
+  objects:['🚀','💰','📈','📉','🎯','🏆','👑','💎','🎁','📣','📢','🔔','📌','📅','📊','💼','🖥️','📱','💳','🪙','🎉','🎊','🕹️','🛡️','⚙️','🔑','📦','🎨','🧠','🕐'],
+  gestures:['👍','👎','👏','🙌','💪','🤝','✌️','🤞','👀','🙏','👋','🤙','✊','🫰','🖐️','☝️','🤌','🫱','🫲','👊'],
+};
+// Unicode "font style" letters — real codepoints (Mathematical Alphanumeric block), not images.
+// Telegram renders these natively as styled text since they're genuine Unicode, unlike HTML/CSS bold which gets stripped.
+function buildFontMap(offsetUpper,offsetLower,offsetDigit,exceptions){
+  const map={};
+  for(let i=0;i<26;i++){
+    const U=String.fromCharCode(65+i), L=String.fromCharCode(97+i);
+    map[U]=(exceptions&&exceptions[U]!==undefined)?exceptions[U]:(offsetUpper!=null?String.fromCodePoint(offsetUpper+i):U);
+    map[L]=(exceptions&&exceptions[L]!==undefined)?exceptions[L]:(offsetLower!=null?String.fromCodePoint(offsetLower+i):L);
+  }
+  for(let i=0;i<10;i++){
+    map[String.fromCharCode(48+i)]=offsetDigit!=null?String.fromCodePoint(offsetDigit+i):String.fromCharCode(48+i);
+  }
+  return map;
+}
+// Real Unicode quirk: these letters live in the older Letterlike Symbols block (U+21xx) instead of
+// the Mathematical Alphanumeric block, for historical reasons — using the "expected" 1D5xx/1D49x
+// codepoints here would render as unassigned/incorrect glyphs.
+const DOUBLESTRUCK_EXCEPTIONS={C:'ℂ',H:'ℍ',N:'ℕ',P:'ℙ',Q:'ℚ',R:'ℝ',Z:'ℤ'};
+const SCRIPT_EXCEPTIONS={B:'ℬ',E:'ℰ',F:'ℱ',H:'ℋ',I:'ℐ',L:'ℒ',M:'ℳ',R:'ℛ',e:'ℯ',g:'ℊ',o:'ℴ'};
+const FONT_STYLES={
+  bold:      buildFontMap(0x1D400,0x1D41A,0x1D7CE),
+  italic:    buildFontMap(0x1D434,0x1D44E,null),
+  boldital:  buildFontMap(0x1D468,0x1D482,null),
+  script:    buildFontMap(0x1D49C,0x1D4B6,null,SCRIPT_EXCEPTIONS),
+  fraktur:   buildFontMap(0x1D504,0x1D51E,null),
+  doublestruck: buildFontMap(0x1D538,0x1D552,0x1D7D8,DOUBLESTRUCK_EXCEPTIONS),
+  mono:      buildFontMap(0x1D670,0x1D68A,0x1D7F6),
+  sans:      buildFontMap(0x1D5A0,0x1D5BA,0x1D7E2),
+  sansbold:  buildFontMap(0x1D5D4,0x1D5EE,0x1D7EC),
+  circled:   (()=>{const m={};for(let i=0;i<26;i++){m[String.fromCharCode(65+i)]=String.fromCodePoint(0x24B6+i);m[String.fromCharCode(97+i)]=String.fromCodePoint(0x24D0+i);}for(let i=0;i<10;i++)m[String.fromCharCode(48+i)]=i===0?'⓪':String.fromCodePoint(0x2460+i-1);return m;})(),
+};
+const FONT_LABELS={bold:'𝐁𝐨𝐥𝐝',italic:'𝘐𝘵𝘢𝘭𝘪𝘤',boldital:'𝙱𝚘𝚕𝚍 𝙸𝚝𝚊𝚕𝚒𝚌',script:'𝒮𝒸𝓇𝒾𝓅𝓉',fraktur:'𝔉𝔯𝔞𝔨𝔱𝔲𝔯',doublestruck:'𝔻𝕠𝕦𝕓𝕝𝕖',mono:'𝙼𝚘𝚗𝚘',sans:'𝖲𝖺𝗇𝗌',sansbold:'𝗦𝗮𝗻𝘀 𝗕𝗼𝗹𝗱',circled:'Ⓒⓘⓡⓒⓛⓔⓓ'};
+function toFontStyle(text,styleKey){
+  const map=FONT_STYLES[styleKey];
+  if(!map)return text;
+  return text.split('').map(ch=>map[ch]!==undefined?map[ch]:ch).join('');
+}
+
+// Simulated Telegram Premium custom emoji set: {emoji, id} — real Telegram custom emoji require a bot with Fragment-purchased usernames
+// or being sent by a Premium account; here we tag them visually with a star badge and store a placeholder custom_emoji_id.
+const PREMIUM_EMOJI=[
+  {e:'🔥',id:'5368324170671202286'},{e:'💎',id:'5368324170671202287'},{e:'👑',id:'5368324170671202288'},
+  {e:'🚀',id:'5368324170671202289'},{e:'⚡',id:'5368324170671202290'},{e:'🌟',id:'5368324170671202291'},
+  {e:'💰',id:'5368324170671202292'},{e:'🏆',id:'5368324170671202293'},{e:'🎯',id:'5368324170671202294'},
+  {e:'✨',id:'5368324170671202295'},{e:'🎉',id:'5368324170671202296'},{e:'💫',id:'5368324170671202297'},
+  {e:'👍',id:'5368324170671202298'},{e:'❤️',id:'5368324170671202299'},{e:'🥳',id:'5368324170671202300'},
+  {e:'😍',id:'5368324170671202301'},{e:'🙌',id:'5368324170671202302'},{e:'💥',id:'5368324170671202303'},
+];
+
+let editPostTarget='tg'; // 'tg' or 'ad'
+
+const EDIT_TARGET_MAP={
+  ad:{srcId:'ad-text',htmlKey:'adCaptionHtml'},
+  tg:{srcId:'tg-caption',htmlKey:'tgCaptionHtml'},
+  cp:{srcId:'cp-text',htmlKey:'cpCaptionHtml'},
+};
+function openEditPost(target){
+  editPostTarget = EDIT_TARGET_MAP[target] ? target : 'tg';
+  const cfg=EDIT_TARGET_MAP[editPostTarget];
+  const box=document.getElementById('edit-post-box');
+  const plain = document.getElementById(cfg.srcId).value || '';
+  // Load existing plain text into the editable box, preserving any HTML already synced
+  const storedHtml = S[cfg.htmlKey];
+  box.innerHTML = storedHtml && plainTextFromHtml(storedHtml)===plain ? storedHtml : escapeHtml(plain);
+  document.getElementById('emoji-panel').style.display='none';
+  buildEmojiGrids();
+  onEditBoxInput();
+  openModal('edit-post-modal');
+  setTimeout(()=>box.focus(),50);
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function plainTextFromHtml(html){
+  const d=document.createElement('div');d.innerHTML=html;
+  return d.textContent||d.innerText||'';
+}
+
+function fmtCmd(cmd){
+  document.getElementById('edit-post-box').focus();
+  document.execCommand(cmd,false,null);
+  onEditBoxInput();
+}
+function fmtSpoiler(){
+  document.getElementById('edit-post-box').focus();
+  const sel=window.getSelection();
+  if(!sel||sel.isCollapsed){showToast('Select text to mark as spoiler','error');return;}
+  document.execCommand('insertHTML',false,`<span class="tg-spoiler">${sel.toString()}</span>`);
+  onEditBoxInput();
+}
+function fmtCode(){
+  document.getElementById('edit-post-box').focus();
+  const sel=window.getSelection();
+  if(!sel||sel.isCollapsed){showToast('Select text to format as code','error');return;}
+  document.execCommand('insertHTML',false,`<code>${sel.toString()}</code>`);
+  onEditBoxInput();
+}
+function fmtClear(){
+  document.getElementById('edit-post-box').focus();
+  document.execCommand('removeFormat',false,null);
+  onEditBoxInput();
+}
+
+function toggleEmojiPanel(){
+  const p=document.getElementById('emoji-panel');
+  p.style.display = p.style.display==='none' ? 'block' : 'none';
+}
+function switchEmojiTab(tab,el){
+  document.querySelectorAll('.emoji-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['faces','symbols','objects','gestures','premium'].forEach(cat=>{
+    const g=document.getElementById('emoji-grid-'+cat);
+    if(g)g.style.display = tab===cat ? 'grid':'none';
+  });
+  document.getElementById('font-style-panel').style.display = tab==='fonts' ? 'block':'none';
+}
+function buildEmojiGrids(){
+  Object.keys(EMOJI_CATEGORIES).forEach(cat=>{
+    const g=document.getElementById('emoji-grid-'+cat);
+    if(!g)return;
+    g.innerHTML=EMOJI_CATEGORIES[cat].map(e=>`<div class="emoji-cell" onclick="insertEmoji('${e}')">${e}</div>`).join('');
+  });
+  const prem=document.getElementById('emoji-grid-premium');
+  prem.innerHTML=PREMIUM_EMOJI.map(p=>`<div class="emoji-cell" onclick="insertPremiumEmoji('${p.e}','${p.id}')">${p.e}<span class="pbadge">⭐</span></div>`).join('');
+  const fontList=document.getElementById('font-style-list');
+  fontList.innerHTML=Object.keys(FONT_STYLES).map(key=>
+    `<div class="btn btn-ghost btn-sm" style="justify-content:flex-start;text-align:left;" onclick="applyFontStyle('${key}')">${FONT_LABELS[key]}</div>`
+  ).join('');
+}
+function insertEmoji(e){
+  const box=document.getElementById('edit-post-box');
+  box.focus();
+  document.execCommand('insertText',false,e);
+  onEditBoxInput();
+}
+function insertPremiumEmoji(e,id){
+  const box=document.getElementById('edit-post-box');
+  box.focus();
+  document.execCommand('insertHTML',false,`<span class="cemoji" data-emoji-id="${id}">${e}</span>`);
+  onEditBoxInput();
+  showToast('⭐ Premium emoji inserted (requires Telegram Premium bot/account to render animated)','info');
+}
+function applyFontStyle(styleKey){
+  const box=document.getElementById('edit-post-box');
+  box.focus();
+  const sel=window.getSelection();
+  if(sel && !sel.isCollapsed && box.contains(sel.anchorNode)){
+    const original=sel.toString();
+    const styled=toFontStyle(original,styleKey);
+    document.execCommand('insertText',false,styled);
+  } else {
+    showToast('Select text first, then pick a font style','error');
+    return;
+  }
+  onEditBoxInput();
+  showToast('✅ Font style applied','success');
+}
+
+function onEditBoxInput(){
+  const box=document.getElementById('edit-post-box');
+  const text=plainTextFromHtml(box.innerHTML);
+  document.getElementById('edit-char-count').textContent=text.length;
+  document.getElementById('edit-post-preview').innerHTML=box.innerHTML;
+}
+
+// Convert the contenteditable HTML into Telegram-safe HTML (only supported tags survive)
+function toTelegramHtml(rawHtml){
+  const div=document.createElement('div');
+  div.innerHTML=rawHtml;
+  function walk(node){
+    let out='';
+    node.childNodes.forEach(child=>{
+      if(child.nodeType===3){ out+=escapeHtml(child.nodeValue); return; }
+      if(child.nodeType!==1) return;
+      const tag=child.tagName.toLowerCase();
+      const inner=walk(child);
+      if(tag==='b'||tag==='strong') out+=`<b>${inner}</b>`;
+      else if(tag==='i'||tag==='em') out+=`<i>${inner}</i>`;
+      else if(tag==='u'||tag==='ins') out+=`<u>${inner}</u>`;
+      else if(tag==='s'||tag==='strike'||tag==='del') out+=`<s>${inner}</s>`;
+      else if(tag==='code') out+=`<code>${inner}</code>`;
+      else if(tag==='span'&&child.classList.contains('tg-spoiler')) out+=`<tg-spoiler>${inner}</tg-spoiler>`;
+      else if(tag==='span'&&child.classList.contains('cemoji')){
+        const id=child.getAttribute('data-emoji-id');
+        out+=`<tg-emoji emoji-id="${id}">${inner}</tg-emoji>`;
+      }
+      else if(tag==='div'||tag==='p') out+=inner+'\n';
+      else if(tag==='br') out+='\n';
+      else out+=inner;
+    });
+    return out;
+  }
+  return walk(div).trim();
+}
+
+function applyEditPost(){
+  const box=document.getElementById('edit-post-box');
+  const html=box.innerHTML;
+  const plain=plainTextFromHtml(html);
+  const tgHtml=toTelegramHtml(html);
+  if(editPostTarget==='ad'){
+    document.getElementById('ad-text').value=plain.slice(0,160);
+    document.getElementById('char-count').textContent=Math.min(plain.length,160);
+    S.adCaptionHtml=html;
+    S.adCaptionTgHtml=tgHtml;
+  } else if(editPostTarget==='cp'){
+    document.getElementById('cp-text').value=plain.slice(0,1024);
+    document.getElementById('cp-char-count').textContent=Math.min(plain.length,1024);
+    S.cpCaptionHtml=html;
+    S.cpCaptionTgHtml=tgHtml;
+    previewCP();
+  } else {
+    document.getElementById('tg-caption').value=plain.slice(0,1024);
+    document.getElementById('tg-char-count').textContent=Math.min(plain.length,1024);
+    S.tgCaptionHtml=html;
+    S.tgCaptionTgHtml=tgHtml;
+    previewPost();
+  }
+  closeModal('edit-post-modal');
+  showToast('✅ Post updated','success');
+}
+
+function syncTgCaptionFromTextarea(){
+  const ta=document.getElementById('tg-caption');
+  document.getElementById('tg-char-count').textContent=ta.value.length;
+  // Plain typing invalidates any rich formatting previously applied via the editor
+  S.tgCaptionHtml=null;
+  S.tgCaptionTgHtml=null;
+}
 </script>
 </body>
 </html>
