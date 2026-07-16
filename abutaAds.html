@@ -1084,4 +1084,161 @@ async function sendToTelegram(){
         body:JSON.stringify({chat_id:chatId,text:caption,parse_mode:'HTML'})});
       const d=await r.json();
       ok=d.ok;
+      if(!ok){res.style.display='block';res.style.color='var(--red)';res.textContent='❌ Error: '+(d.description||'Failed');showToast('Send failed','error');}
+    }
+    if(ok){
+      res.style.display='block';res.style.color='var(--green)';res.textContent='✅ Posted successfully to '+chatId;
+      showToast('✅ Posted to Telegram!','success');
+    }
+  }catch(err){
+    res.style.display='block';res.style.color='var(--red)';res.textContent='❌ Error: '+err.message;
+    showToast('Send failed','error');
+  }finally{
+    btn.disabled=false;btn.textContent='📤 Send to Telegram';
+  }
+}
+
+// ── TOAST ──
+function showToast(msg,type='info'){
+  const el=document.getElementById('toast');
+  if(!el)return;
+  const colors={success:'var(--green)',error:'var(--red)',info:'var(--accent)'};
+  el.textContent=msg;
+  el.style.cssText=`
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--card);border:1px solid ${colors[type]||colors.info};color:var(--text);
+    padding:11px 20px;border-radius:10px;font-size:.82rem;font-weight:600;z-index:400;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;transition:all .25s ease;pointer-events:none;
+    max-width:90vw;text-align:center;
+  `;
+  requestAnimationFrame(()=>{
+    el.style.opacity='1';el.style.transform='translateX(-50%) translateY(0)';
+  });
+  clearTimeout(showToast._t);
+  showToast._t=setTimeout(()=>{
+    el.style.opacity='0';el.style.transform='translateX(-50%) translateY(20px)';
+  },2600);
+}
+
+// ── MODALS ──
+function openModal(id){
+  const m=document.getElementById(id);
+  if(m)m.classList.add('open');
+}
+function closeModal(id){
+  const m=document.getElementById(id);
+  if(m)m.classList.remove('open');
+}
+
+// ── WALLET ──
+function doDeposit(){
+  const amt=parseFloat(document.getElementById('dep-amount').value)||0;
+  if(amt<1){showToast('Minimum 1 TON','error');return;}
+  S.balance+=amt;
+  updateBalance();
+  S.txHistory.unshift({date:'Today',type:'Deposit',amount:'+'+amt+' TON'});
+  buildTxHistory();
+  closeModal('deposit-modal');
+  document.getElementById('dep-amount').value='';
+  showToast('✅ Deposit confirmed','success');
+}
+
+// ── CHANNELS ──
+function addChannel(){
+  const handle=document.getElementById('new-channel-input').value.trim();
+  const cat=document.getElementById('new-channel-cat').value;
+  if(!handle){showToast('Enter channel username','error');return;}
+  S.channels.push({name:handle.replace('@',''),handle,subs:0,category:cat,earned:'0 TON',status:'active'});
+  buildChannelsGrid();
+  closeModal('add-channel-modal');
+  document.getElementById('new-channel-input').value='';
+  showToast('✅ Channel connected','success');
+}
+
+// ── ADMIN ──
+function addAdmin(){
+  const u=document.getElementById('new-admin-input').value.trim();
+  if(!u){showToast('Enter username','error');return;}
+  S.admins.push(u);
+  buildAdminList();
+  closeModal('add-admin-modal');
+  document.getElementById('new-admin-input').value='';
+  showToast('✅ Admin access granted','success');
+}
+function buildAdminList(){
+  const el=document.getElementById('admin-list');if(!el)return;
+  el.innerHTML=S.admins.map(a=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+      <div style="font-weight:600;font-size:.82rem;">${a}</div>
+      <span class="tag tag-gold">Admin</span>
+    </div>`).join('');
+}
+function processAllPayouts(){
+  S.payouts.forEach(p=>{if(p.status==='pending')p.status='paid';});
+  buildPayoutsTable();
+  showToast('✅ All payouts processed','success');
+}
+function buildPayoutsTable(){
+  const el=document.getElementById('payouts-table');if(!el)return;
+  el.innerHTML=S.payouts.map(p=>`
+    <tr>
+      <td>${p.user}</td><td>${p.amount}</td><td style="font-family:monospace;">${p.wallet}</td><td>${p.requested}</td>
+      <td><span class="tag ${p.status==='paid'?'tag-green':'tag-gold'}">${p.status}</span></td>
+      <td>${p.status==='pending'?`<button class="btn btn-success btn-sm" onclick="payOne('${p.user}')">Pay</button>`:'—'}</td>
+    </tr>`).join('');
+}
+function payOne(user){
+  const p=S.payouts.find(x=>x.user===user&&x.status==='pending');
+  if(p)p.status='paid';
+  buildPayoutsTable();
+  showToast('✅ Payout sent','success');
+}
+
+// ── REFERRAL ──
+function copyRef(){
+  const inp=document.getElementById('ref-link');
+  inp.select();
+  inp.setSelectionRange(0,99999);
+  try{
+    navigator.clipboard.writeText(inp.value);
+  }catch{
+    document.execCommand('copy');
+  }
+  showToast('✅ Referral link copied','success');
+}
+
+// ── TX HISTORY ──
+function buildTxHistory(){
+  const el=document.getElementById('tx-history');if(!el)return;
+  el.innerHTML=S.txHistory.map(t=>`
+    <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
+      <div><div style="font-weight:600;font-size:.82rem;">${t.type}</div><div class="text-muted">${t.date}</div></div>
+      <div style="font-weight:700;font-size:.82rem;color:${t.amount.startsWith('+')?'var(--green)':'var(--red)'};">${t.amount}</div>
+    </div>`).join('');
+}
+
+// ── PLACEHOLDER BUILDERS (safe no-ops if containers absent) ──
+function buildActivityFeed(){}
+function buildChannelsGrid(){
+  const el=document.getElementById('channels-grid');if(!el)return;
+  el.innerHTML=S.channels.map(c=>`
+    <div class="card">
+      <div style="font-weight:700;">${c.name}</div>
+      <div class="text-muted">${c.handle} · ${c.category}</div>
+      <div style="margin-top:8px;display:flex;justify-content:space-between;">
+        <span>${c.subs.toLocaleString()} subs</span><span style="color:var(--green);">${c.earned}</span>
+      </div>
+    </div>`).join('');
+}
+function buildExchangeGrid(){}
+function buildCategoryTags(){}
+function buildGeoList(){}
+function buildUsersTable(){}
+function buildAdminCampaignsTable(){}
+function buildAdminChannelsTable(){}
+function buildModerationQueue(){}
+function buildPendingReviews(){}
+</script>
+</body>
+</html>
       if(!ok){res.style.display='b
