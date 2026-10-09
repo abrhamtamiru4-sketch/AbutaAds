@@ -1,0 +1,13 @@
+{
+    admin off
+    auto_https off
+}
+
+:8080 {
+    reverse_proxy localhost:8081
+
+    log {
+        output stdout
+        level INFO
+    }
+}

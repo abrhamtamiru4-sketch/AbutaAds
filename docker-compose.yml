@@ -1,0 +1,79 @@
+version: "3.9"
+
+services:
+  bot:
+    build: .
+    container_name: abutahunt_bot
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - abutahunt_net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import asyncio; asyncio.run(__import__('aiohttp').ClientSession().get('http://localhost:8080/health'))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  db:
+    image: postgres:16-alpine
+    container_name: abutahunt_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-abutahunt}
+      POSTGRES_USER: ${POSTGRES_USER:-abutahunt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    networks:
+      - abutahunt_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-abutahunt} -d ${POSTGRES_DB:-abutahunt}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: abutahunt_redis
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - abutahunt_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nginx:
+    image: nginx:alpine
+    container_name: abutahunt_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - bot
+    networks:
+      - abutahunt_net
+
+volumes:
+  pg_data:
+  redis_data:
+
+networks:
+  abutahunt_net:
+    driver: bridge
